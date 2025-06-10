@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Video Text Overlay Animation</title>
+  <style>
+    /* Reset body, set black background, and center content */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Video container: 100% of browser width (capped by flex), 16:9 aspect ratio */
+    #videoContainer {
+      position: relative;
+      width: 100vw;
+      aspect-ratio: 16/9;
+      overflow: hidden;
+    }
+    #videoContainer video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Wrapper for both text lines */
+    #textWrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Shared text styles, positioned by percent of container */
+    #text, #text2 {
+      position: absolute;
+      left: 16.67%;
+      color: #fff;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+    #text {
+      top: 52%;       /* moved lower */
+      font-size: 2vw;
+      width: 16vw;
+      margin-left: -8vw;
+      font-family: 'SegoePro-Bold', sans-serif;
+    }
+    #text2 {
+      top: 59%;       /* a little lower than DIV1 */
+      font-size: 1.2vw;
+      width: 16vw;
+      line-height: 1.2;
+      margin-left: -8vw;
+      font-family: 'SegoePro', sans-serif;
+    }
+
+    @keyframes slideFade {
+      from {
+        opacity: 0;
+        transform: translateX(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; }
+    }
+
+    .char, .word {
+      display: inline-block;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="videoContainer">
+    <video id="video" autoplay muted playsinline preload="auto">
+      <source src="sample.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <div id="textWrapper">
+      <div id="text"></div>
+      <div id="text2"></div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+      const fps = 24;
+      const startFrame1 = 76;
+      const startFrame2 = 86;
+      const letterDuration = 16 / fps;
+      const wordDuration = 27 / fps;
+      const fadeStart = 260 / fps;
+      const fadeDuration = 7 / fps;
+      const video = document.getElementById('video');
+
+      // Fetch TSV data
+      const tsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTkwCRgW9w8tNzve1QIvKLbbRdZVPxlJvW58--qBwLWVDbqhAKw2wrXK0QIL2zrYANfa7Vs8X8sOaAP/pub?output=tsv';
+      const resp = await fetch(tsvUrl);
+      const tsv = await resp.text();
+      const rows = tsv.trim().split('\n').map(r => r.split('\t'));
+      rows.shift(); // drop header
+      const [text1Str, text2Str] = rows[Math.floor(Math.random() * rows.length)];
+
+      const container1 = document.getElementById('text');
+      const container2 = document.getElementById('text2');
+      container1.textContent = text1Str;
+      container2.textContent = text2Str;
+
+      function scheduleAnimations() {
+        // Animate first DIV per-character
+        const textContent1 = container1.textContent;
+        container1.textContent = '';
+        Array.from(textContent1).forEach((char, i) => {
+          const span = document.createElement('span');
+          span.className = 'char';
+          span.textContent = char;
+          const delay = (startFrame1 + i) / fps - video.currentTime;
+          span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          container1.appendChild(span);
+        });
+
+        // Animate second DIV per-word
+        const textContent2 = container2.textContent;
+        container2.textContent = '';
+        textContent2.split(' ').forEach((word, i, arr) => {
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.textContent = word;
+          const delay = (startFrame2 + i) / fps - video.currentTime;
+          span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          container2.appendChild(span);
+          if (i < arr.length - 1) container2.appendChild(document.createTextNode(' '));
+        });
+
+        // Fade out wrapper
+        const wrapper = document.getElementById('textWrapper');
+        const fadeDelay = fadeStart - video.currentTime;
+        wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
+        wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
+      }
+
+      // Start when video data is loaded
+      if (video.readyState >= 2) {
+        scheduleAnimations();
+      } else {
+        video.addEventListener('loadeddata', scheduleAnimations, { once: true });
+      }
+    });
+  </script>
+</body>
+</html>
