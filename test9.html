@@ -73,7 +73,7 @@
 <body>
   <div id="videoContainer">
     <video autoplay muted playsinline preload="auto">
-      <source src="static.originmedia.tv/website/internal/sample.mp4" type="video/mp4">
+      <source src="https://static.originmedia.tv/website/internal/sample.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
     <div id="textWrapper">
@@ -87,7 +87,7 @@
       const fps = 24;
 
       // Fetch TSV from Google Sheets (two columns: first line -> #text, second -> #text2)
-      const tsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTkwCRgW9w8tNzve1QIvKLbbRdZVPxlJvW58--qBwLWVDbqhAKw2wrXK0QIL2zrYANfa7Vs8X8sOaAP/pub?output=tsv';
+      const tsvUrl = 'https://static.originmedia.tv/website/internal/maine-overlaytest.tsv';
       const resp = await fetch(tsvUrl);
       const tsv = await resp.text();
       const rows = tsv.trim().split('\n').map(r => r.split('\t'));
