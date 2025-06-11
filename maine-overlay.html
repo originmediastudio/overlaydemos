@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <title>Overlay Animation</title>
   <style>
-
-    
     /* Reset and transparent background */
     html, body {
       margin: 0;
@@ -35,18 +33,18 @@
       white-space: pre-wrap;
     }
     #text {
-      top: 52%;   
-      font-size: 2.5vw;
-      width: 20vw;
-      margin-left: -10vw;
+      top: 52%;
+      font-size: 2vw;
+      width: 16vw;
+      margin-left: -8vw;
       font-family: 'SegoePro-Bold', sans-serif;
     }
     #text2 {
-      top: 59%;       
-      font-size: 1.4vw;
-      width: 20vw;
+      top: 59%;
+      font-size: 1.2vw;
+      width: 16vw;
       line-height: 1.2;
-      margin-left: -10vw;
+      margin-left: -8vw;
       font-family: 'SegoePro', sans-serif;
     }
 
@@ -72,7 +70,6 @@
 
   <script>
     (function() {
-      // TSV source and animation settings
       const tsvUrl = 'https://script.google.com/macros/s/AKfycbx-aX3pCZJQHoT8TdqvBZNgoof-l-BTL4yvanfStQuayFJcVA0A88iBMxKw9KnfPbJg/exec';
       const startFrame1 = 76;
       const startFrame2 = 86;
@@ -81,67 +78,80 @@
       const fadeStartFrame = 260;
       const fadeFrames = 7;
 
-      // Handle messages from parent
+      let handshakeTime = 0;
+      let handshakeVideoTime = 0;
+
       window.addEventListener('message', function handler(e) {
-        // Step 1: Parent tells us it's loaded
+        // Parent loaded: notify ready
         if (e.data === 'parentLoaded') {
           parent.postMessage('overlayReady', '*');
         }
-        // Step 2: Parent sends init data
+
+        // Init data received
         if (e.data && e.data.type === 'init') {
           const { currentTime, fps } = e.data;
-          const letterDuration = letterFrames / fps;
-          const wordDuration = wordFrames / fps;
-          const fadeStart = fadeStartFrame / fps;
-          const fadeDuration = fadeFrames / fps;
+          handshakeTime = performance.now();
+          handshakeVideoTime = currentTime;
 
-          // Fetch and pick a random row
+          // Fetch data immediately
           fetch(tsvUrl)
             .then(r => r.text())
             .then(text => {
+              // compute actual video time at this moment
+              const now = performance.now();
+              const delta = (now - handshakeTime) / 1000;
+              const videoTime = handshakeVideoTime + delta;
+
+              // parse TSV and pick random row
               const rows = text.trim().split('\n').map(r => r.split('\t'));
-              rows.shift(); // remove header
+              rows.shift();
               const [t1, t2] = rows[Math.floor(Math.random() * rows.length)];
+
+              // populate containers
               const c1 = document.getElementById('text');
               const c2 = document.getElementById('text2');
               c1.textContent = t1;
               c2.textContent = t2;
 
-              // Animate first line (per character)
+              // durations in seconds
+              const letterDuration = letterFrames / fps;
+              const wordDuration = wordFrames / fps;
+              const fadeStart = fadeStartFrame / fps;
+              const fadeDuration = fadeFrames / fps;
+
+              // schedule character animation
               const chars = Array.from(t1);
               c1.textContent = '';
               chars.forEach((char, i) => {
                 const span = document.createElement('span');
                 span.className = 'char';
                 span.textContent = char;
-                const delay = (startFrame1 + i) / fps - currentTime;
+                const delay = (startFrame1 + i) / fps - videoTime;
                 span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
                 span.style.animationDelay = `${Math.max(delay, 0)}s`;
                 c1.appendChild(span);
               });
 
-              // Animate second line (per word)
-              const words = t2.split(' ');
+              // schedule word animation
               c2.textContent = '';
-              words.forEach((word, i) => {
+              t2.split(' ').forEach((word, i, arr) => {
                 const span = document.createElement('span');
                 span.className = 'word';
                 span.textContent = word;
-                const delay = (startFrame2 + i) / fps - currentTime;
+                const delay = (startFrame2 + i) / fps - videoTime;
                 span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
                 span.style.animationDelay = `${Math.max(delay, 0)}s`;
                 c2.appendChild(span);
-                if (i < words.length - 1) c2.appendChild(document.createTextNode(' '));
+                if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
               });
 
-              // Fade out wrapper
+              // schedule fade out
               const wrapper = document.getElementById('textWrapper');
-              const fadeDelay = fadeStart - currentTime;
+              const fadeDelay = fadeStart - videoTime;
               wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
               wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
             });
 
-          // No longer need this listener
           window.removeEventListener('message', handler);
         }
       });
