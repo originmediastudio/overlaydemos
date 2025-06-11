@@ -34,7 +34,7 @@
 </head>
 <body>
   <div id="player">
-    <!-- Video tag with audio unmuted -->
+    <!-- Video tag starts muted for autoplay, will unmute on user interaction -->
     <video id="adVideo" autoplay muted playsinline preload="auto">
       <source src="https://static.originmedia.tv/website/internal/sample.mp4" type="video/mp4">
     </video>
@@ -46,17 +46,25 @@
     const video = document.getElementById('adVideo');
     const overlay = document.getElementById('overlayFrame');
 
-    // Auto-unmute and play with sound if allowed
-    video.muted = false;
-    video.volume = 1;
-    video.play().catch(err => console.warn('Auto-play with sound prevented:', err));
+    // Keep video muted initially to satisfy autoplay policies
+    video.muted = true;
 
-    // 1) Notify overlay that parent has loaded
+    // Unmute on first user gesture
+    function handleFirstInteraction() {
+      video.muted = false;
+      video.volume = 1;
+      // Optional: re-trigger play in case unmuting paused playback
+      video.play().catch(() => {});
+      document.body.removeEventListener('click', handleFirstInteraction);
+    }
+    document.body.addEventListener('click', handleFirstInteraction, { once: true });
+
+    // Notify overlay that parent has loaded
     overlay.addEventListener('load', () => {
       overlay.contentWindow.postMessage('parentLoaded', '*');
     });
 
-    // 2) Handshake initiation
+    // Handshake initiation
     window.addEventListener('message', e => {
       if (e.source !== overlay.contentWindow) return;
       if (e.data === 'overlayReady') {
