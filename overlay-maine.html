@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Overlay Animation</title>
   <style>
-        /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
+    /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
     @font-face {
       font-family: 'SegoePro';
       src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro.woff2') format('woff2');
@@ -109,33 +109,40 @@
           handshakeTime = performance.now();
           handshakeVideoTime = currentTime;
 
-          // Fetch data immediately
           fetch(tsvUrl)
             .then(r => r.text())
             .then(text => {
-              // compute actual video time at this moment
+              // compute actual video time at fetch completion
               const now = performance.now();
-              const delta = (now - handshakeTime) / 1000;
-              const videoTime = handshakeVideoTime + delta;
+              const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
 
-              // parse TSV and pick random row
-              const rows = text.trim().split('\n').map(r => r.split('\t'));
-              rows.shift();
-              const [t1, t2] = rows[Math.floor(Math.random() * rows.length)];
+              // parse TSV into header + data rows
+              const allRows = text.trim().split('\n').map(r => r.split('\t'));
+              const headers = allRows[0];
+              const dataRows = allRows.slice(1);
 
-              // populate containers
+              // find columns by header name
+              const idx1 = headers.indexOf('text1');
+              const idx2 = headers.indexOf('text2');
+
+              // pick a random row and extract values
+              const randomRow = dataRows[Math.floor(Math.random() * dataRows.length)];
+              const t1 = randomRow[idx1];
+              const t2 = randomRow[idx2];
+
+              // populate text containers
               const c1 = document.getElementById('text');
               const c2 = document.getElementById('text2');
               c1.textContent = t1;
               c2.textContent = t2;
 
-              // durations in seconds
+              // compute durations
               const letterDuration = letterFrames / fps;
               const wordDuration = wordFrames / fps;
               const fadeStart = fadeStartFrame / fps;
               const fadeDuration = fadeFrames / fps;
 
-              // schedule character animation
+              // animate first line per character
               const chars = Array.from(t1);
               c1.textContent = '';
               chars.forEach((char, i) => {
@@ -148,7 +155,7 @@
                 c1.appendChild(span);
               });
 
-              // schedule word animation
+              // animate second line per word
               c2.textContent = '';
               t2.split(' ').forEach((word, i, arr) => {
                 const span = document.createElement('span');
