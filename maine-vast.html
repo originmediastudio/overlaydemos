@@ -4,7 +4,17 @@
   <meta charset="utf-8"/>
   <title>SIMID PoC Container</title>
   <style>
-    body, html { margin:0; padding:0; background:#000; height:100%; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
     #player { position:relative; width:100vw; aspect-ratio:16/9; }
     #player video { width:100%; height:100%; }
     #player iframe {
