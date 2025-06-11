@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Overlay Animation</title>
+  <style>
+    /* Reset and transparent background */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* Wrapper for both text lines */
+    #textWrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Shared text styles */
+    #text, #text2 {
+      position: absolute;
+      left: 16.67%;
+      color: #fff;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+    #text {
+      top: 52%;
+      font-size: 2vw;
+      width: 16vw;
+      margin-left: -8vw;
+      font-family: 'SegoePro-Bold', sans-serif;
+    }
+    #text2 {
+      top: 59%;
+      font-size: 1.2vw;
+      width: 16vw;
+      line-height: 1.2;
+      margin-left: -8vw;
+      font-family: 'SegoePro', sans-serif;
+    }
+
+    @keyframes slideFade {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to   { opacity: 0; }
+    }
+    .char, .word {
+      display: inline-block;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="textWrapper">
+    <div id="text"></div>
+    <div id="text2"></div>
+  </div>
+
+  <script>
+    (function() {
+      // TSV source and animation settings
+      const tsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTkwCRgW9w8tNzve1QIvKLbbRdZVPxlJvW58--qBwLWVDbqhAKw2wrXK0QIL2zrYANfa7Vs8X8sOaAP/pub?output=tsv';
+      const startFrame1 = 76;
+      const startFrame2 = 86;
+      const letterFrames = 16;
+      const wordFrames = 27;
+      const fadeStartFrame = 260;
+      const fadeFrames = 7;
+
+      // Handle messages from parent
+      window.addEventListener('message', function handler(e) {
+        // Step 1: Parent tells us it's loaded
+        if (e.data === 'parentLoaded') {
+          parent.postMessage('overlayReady', '*');
+        }
+        // Step 2: Parent sends init data
+        if (e.data && e.data.type === 'init') {
+          const { currentTime, fps } = e.data;
+          const letterDuration = letterFrames / fps;
+          const wordDuration = wordFrames / fps;
+          const fadeStart = fadeStartFrame / fps;
+          const fadeDuration = fadeFrames / fps;
+
+          // Fetch and pick a random row
+          fetch(tsvUrl)
+            .then(r => r.text())
+            .then(text => {
+              const rows = text.trim().split('\n').map(r => r.split('\t'));
+              rows.shift(); // remove header
+              const [t1, t2] = rows[Math.floor(Math.random() * rows.length)];
+              const c1 = document.getElementById('text');
+              const c2 = document.getElementById('text2');
+              c1.textContent = t1;
+              c2.textContent = t2;
+
+              // Animate first line (per character)
+              const chars = Array.from(t1);
+              c1.textContent = '';
+              chars.forEach((char, i) => {
+                const span = document.createElement('span');
+                span.className = 'char';
+                span.textContent = char;
+                const delay = (startFrame1 + i) / fps - currentTime;
+                span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
+                span.style.animationDelay = `${Math.max(delay, 0)}s`;
+                c1.appendChild(span);
+              });
+
+              // Animate second line (per word)
+              const words = t2.split(' ');
+              c2.textContent = '';
+              words.forEach((word, i) => {
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.textContent = word;
+                const delay = (startFrame2 + i) / fps - currentTime;
+                span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
+                span.style.animationDelay = `${Math.max(delay, 0)}s`;
+                c2.appendChild(span);
+                if (i < words.length - 1) c2.appendChild(document.createTextNode(' '));
+              });
+
+              // Fade out wrapper
+              const wrapper = document.getElementById('textWrapper');
+              const fadeDelay = fadeStart - currentTime;
+              wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
+              wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
+            });
+
+          // No longer need this listener
+          window.removeEventListener('message', handler);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
