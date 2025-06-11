@@ -97,13 +97,15 @@
       let handshakeTime = 0;
       let handshakeVideoTime = 0;
 
+      // Helper to get URL param
+      function getParam(name) {
+        return new URLSearchParams(window.location.search).get(name);
+      }
+
       window.addEventListener('message', function handler(e) {
-        // Parent loaded: notify ready
         if (e.data === 'parentLoaded') {
           parent.postMessage('overlayReady', '*');
         }
-
-        // Init data received
         if (e.data && e.data.type === 'init') {
           const { currentTime, fps } = e.data;
           handshakeTime = performance.now();
@@ -112,40 +114,47 @@
           fetch(tsvUrl)
             .then(r => r.text())
             .then(text => {
-              // compute actual video time at fetch completion
               const now = performance.now();
               const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
 
-              // parse TSV into header + data rows
+              // parse TSV
               const allRows = text.trim().split('\n').map(r => r.split('\t'));
               const headers = allRows[0];
               const dataRows = allRows.slice(1);
 
-              // find columns by header name
+              // locate columns
               const idx1 = headers.indexOf('text1');
               const idx2 = headers.indexOf('text2');
+              const idxDma = headers.indexOf('dma');
 
-              // pick a random row and extract values
-              const randomRow = dataRows[Math.floor(Math.random() * dataRows.length)];
-              const t1 = randomRow[idx1];
-              const t2 = randomRow[idx2];
+              // determine row based on dma param or random
+              const dmaVal = getParam('dma');
+              let chosenRow;
+              if (dmaVal && idxDma > -1) {
+                chosenRow = dataRows.find(r => r[idxDma] === dmaVal);
+              }
+              if (!chosenRow) {
+                chosenRow = dataRows[Math.floor(Math.random() * dataRows.length)];
+              }
 
-              // populate text containers
+              const t1 = chosenRow[idx1];
+              const t2 = chosenRow[idx2];
+
+              // populate containers
               const c1 = document.getElementById('text');
               const c2 = document.getElementById('text2');
               c1.textContent = t1;
               c2.textContent = t2;
 
-              // compute durations
+              // durations
               const letterDuration = letterFrames / fps;
               const wordDuration = wordFrames / fps;
               const fadeStart = fadeStartFrame / fps;
               const fadeDuration = fadeFrames / fps;
 
               // animate first line per character
-              const chars = Array.from(t1);
               c1.textContent = '';
-              chars.forEach((char, i) => {
+              Array.from(t1).forEach((char, i) => {
                 const span = document.createElement('span');
                 span.className = 'char';
                 span.textContent = char;
@@ -168,7 +177,7 @@
                 if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
               });
 
-              // schedule fade out
+              // fade out wrapper
               const wrapper = document.getElementById('textWrapper');
               const fadeDelay = fadeStart - videoTime;
               wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
