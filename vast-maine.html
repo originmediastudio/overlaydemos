@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="UTF-8" />
   <title>SIMID PoC Container</title>
   <style>
+    /* Full-viewport, black background, center video vertically and horizontally */
     html, body {
       margin: 0;
       padding: 0;
@@ -15,41 +16,63 @@
       align-items: center;
       overflow: hidden;
     }
-    #player { position:relative; width:100vw; aspect-ratio:16/9; }
-    #player video { width:100%; height:100%; }
+
+    /* Video/overlay container with 16:9 aspect ratio */
+    #player {
+      position: relative;
+      width: 100vw;
+      max-width: 100%;
+      aspect-ratio: 16/9;
+    }
+    #player video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
     #player iframe {
-      position:absolute;
-      top:0; left:0;
-      width:100%; height:100%;
-      border:0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
   <div id="player">
-    <!-- 1) Video tag -->
-    <video id="adVideo" autoplay playsinline preload="auto">
-      <source src="https://static.originmedia.tv/website/internal/sample.mp4" type="video/mp4">
+    <!-- Video source: replace with your MP4 URL; audio enabled -->
+    <video id="adVideo" autoplay playsinline preload="auto" controls>
+      <source src="sample.mp4" type="video/mp4">
+      Your browser does not support the video tag.
     </video>
-    <!-- 2) Overlay iframe -->
+    <!-- Overlay iframe: sandboxed for SIMID-proof-of-concept -->
     <iframe id="overlayFrame"
-      sandbox="allow-scripts"
-      src="overlay-maine.html">
+            sandbox="allow-scripts"
+            src="maine-overlay.html">
     </iframe>
   </div>
 
   <script>
     const video = document.getElementById('adVideo');
     const overlay = document.getElementById('overlayFrame');
-    let isOverlayReady = false;
 
-    // 1) Listen for messages from the overlay
+    // Attempt auto-unmute so audio plays if policies allow
+    video.muted = false;
+    video.volume = 1;
+    video.play().catch(err => console.warn('Auto-play with sound prevented:', err));
+
+    // 1) Notify overlay that parent has loaded
+    overlay.addEventListener('load', () => {
+      overlay.contentWindow.postMessage('parentLoaded', '*');
+    });
+
+    // 2) Handle overlay readiness and perform handshake
     window.addEventListener('message', e => {
       if (e.source !== overlay.contentWindow) return;
-
       if (e.data === 'overlayReady') {
-        // 2) Tell overlay the current playback timeline
-        isOverlayReady = true;
         overlay.contentWindow.postMessage({
           type: 'init',
           currentTime: video.currentTime,
@@ -57,12 +80,6 @@
           fps: 24
         }, '*');
       }
-      // 3) (Optional) handle other messages—e.g. pause, resume
-    });
-
-    // 4) As soon as the iframe loads, let it know it can bootstrap
-    overlay.addEventListener('load', () => {
-      overlay.contentWindow.postMessage('parentLoaded', '*');
     });
   </script>
 </body>
