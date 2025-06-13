@@ -194,6 +194,16 @@
       console.log('Video URL:', videoUrl);
       console.log('Overlay URL:', overlayUrl);
       
+      // If video is already playing and we're unmuting, reload overlay to resync
+      if (!videoEl.paused && unmute && videoEl.muted) {
+        console.log('Unmuting existing video - reloading overlay to maintain sync');
+        videoEl.muted = false;
+        // Reload overlay with new cache buster to force resync
+        iframeEl.src = overlayUrl;
+        setupOverlayMessaging();
+        return;
+      }
+      
       videoEl.src = videoUrl;
       iframeEl.src = overlayUrl;
       videoEl.muted = !unmute;
