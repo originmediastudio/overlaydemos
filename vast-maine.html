@@ -44,7 +44,7 @@
     <video id="adVideo" autoplay muted playsinline preload="auto">
       <source src="https://static.originmedia.tv/website/internal/sample.mp4" type="video/mp4">
     </video>
-    <!-- Overlay iframe, src will be set dynamically to include UTM params -->
+    <!-- Overlay iframe, src will be set dynamically to include UTM params and cache buster -->
     <iframe id="overlayFrame" sandbox="allow-scripts" src="overlay-maine.html"></iframe>
   </div>
 
@@ -61,11 +61,16 @@
     }
     document.body.addEventListener('click', unmute, { once: true });
 
-    // Append any UTM/query string to the overlay URL
+    // Build iframe src with existing UTM/query string and cache buster
     const params = window.location.search;
+    const cacheBuster = `_cb=${Date.now()}`;
+    let iframeSrc = 'overlay-maine.html';
     if (params) {
-      overlay.setAttribute('src', `overlay-maine.html${params}`);
+      iframeSrc += params + '&' + cacheBuster;
+    } else {
+      iframeSrc += '?' + cacheBuster;
     }
+    overlay.setAttribute('src', iframeSrc);
 
     // Notify overlay that parent has loaded
     overlay.addEventListener('load', () => {
