@@ -102,12 +102,18 @@
       });
 
     function populateCampaigns() {
-      const idx = headers.findIndex(h => h.toLowerCase() === 'campaign');
+      // Attempt to find "campaign" column (case-insensitive)
+      let idx = headers.findIndex(h => h.toLowerCase() === 'campaign');
       if (idx < 0) {
-        console.error('Campaign header not found', headers);
-        campaignSelect.innerHTML = '<option value="">No campaigns available</option>';
-        return;
+        console.warn('Campaign header not found, defaulting to first column. Headers:', headers);
+        idx = 0;
       }
+      // Collect unique campaign values, filtering out any falsy
+      const uniq = [...new Set(dataRows.map(r => r[idx]).filter(Boolean))];
+      // Populate dropdown
+      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
+        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
       const uniq = [...new Set(dataRows.map(r => r[idx]).filter(Boolean))];
       campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
         uniq.map(c => `<option value="${c}">${c}</option>`).join('');
