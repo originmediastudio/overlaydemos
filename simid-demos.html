@@ -244,27 +244,7 @@
       });
     }
 
-    loadSoundBtn.addEventListener('click', () => {
-      // Disable button and show loading state
-      loadSoundBtn.disabled = true;
-      loadSoundBtn.style.opacity = '0.5';
-      loadSoundBtn.textContent = 'Loading...';
-      
-      // First load
-      loadExperience(true);
-      
-      // Second load after a short delay to ensure sync
-      setTimeout(() => {
-        loadExperience(true);
-        
-        // Restore button state
-        loadSoundBtn.disabled = false;
-        loadSoundBtn.style.opacity = '1';
-        loadSoundBtn.textContent = 'Load with sound';
-        updateLoadButtons(); // Make sure it stays enabled if selections are still valid
-      }, 200);
-    });
-    
+    loadSoundBtn.addEventListener('click', () => loadExperience(true));
     loadMutedBtn.addEventListener('click', () => loadExperience(false));
   </script>
 </body>
