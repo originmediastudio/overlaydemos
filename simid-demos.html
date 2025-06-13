@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 412</title>
+  <title>Origin SIMID Demo Player 423</title>
   <style>
     body, html {
       margin: 0;
@@ -76,7 +76,7 @@
     </div>
   </div>
   <div id="player">
-    <video id="adVideo" playsinline preload="auto"></video>
+    <video id="adVideo" autoplay muted playsinline preload="auto"></video>
     <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
   </div>
 
@@ -97,6 +97,37 @@
     
     // Disable load button until selections are made
     loadButton.disabled = true;
+
+    // Set up pause debugging once (not multiple times)
+    videoEl.addEventListener('pause', function(e) {
+      console.log('=== VIDEO PAUSED ===');
+      console.log('Time:', videoEl.currentTime);
+      console.log('Duration:', videoEl.duration);
+      console.log('Ended:', videoEl.ended);
+      console.log('Error:', videoEl.error);
+      console.log('Ready state:', videoEl.readyState);
+      console.log('Network state:', videoEl.networkState);
+      console.trace('Pause origin');
+    });
+
+    // Set up overlay messaging once (like the working version)
+    iframeEl.addEventListener('load', () => {
+      if (iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage('parentLoaded', '*');
+      }
+    });
+
+    window.addEventListener('message', e => {
+      if (e.source !== iframeEl.contentWindow) return;
+      if (e.data === 'overlayReady') {
+        iframeEl.contentWindow.postMessage({
+          type: 'init',
+          currentTime: videoEl.currentTime,
+          duration: videoEl.duration,
+          fps: 24
+        }, '*');
+      }
+    });
 
     // Function to enable/disable load button based on selections
     function updateLoadButton() {
@@ -205,46 +236,16 @@
       console.log('Loading overlay:', overlayUrl);
       console.log('With sound:', soundRequested);
       
-      videoEl.src = videoUrl;
+      // Use innerHTML to set source like the working version
+      videoEl.innerHTML = `<source src="${videoUrl}" type="video/mp4">`;
+      videoEl.load(); // Force reload of video with new source
       videoEl.muted = !soundRequested;
       videoEl.play();
       
-      // Add debugging for video pause events
-      videoEl.addEventListener('pause', function(e) {
-        console.log('=== VIDEO PAUSED ===');
-        console.log('Time:', videoEl.currentTime);
-        console.log('Duration:', videoEl.duration);
-        console.log('Ended:', videoEl.ended);
-        console.log('Error:', videoEl.error);
-        console.log('Ready state:', videoEl.readyState);
-        console.log('Network state:', videoEl.networkState);
-        console.trace('Pause origin');
-      });
-      
       iframeEl.src = overlayUrl;
-      setupOverlayMessaging();
       
       // Reset sound flag
       soundRequested = false;
-    }
-
-    // Handle overlay communication
-    function setupOverlayMessaging() {
-      iframeEl.addEventListener('load', () => {
-        iframeEl.contentWindow.postMessage('parentLoaded', '*');
-      });
-
-      window.addEventListener('message', e => {
-        if (e.source !== iframeEl.contentWindow) return;
-        if (e.data === 'overlayReady') {
-          iframeEl.contentWindow.postMessage({
-            type: 'init',
-            currentTime: videoEl.currentTime,
-            duration: videoEl.duration,
-            fps: 24
-          }, '*');
-        }
-      });
     }
 
     loadButton.addEventListener('click', startExperience);
