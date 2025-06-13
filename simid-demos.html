@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demos</title>
+  <title>Origin SIMID Demo Player 335</title>
   <style>
     body, html {
       margin: 0;
@@ -15,29 +15,32 @@
       padding: 20px;
     }
     h1 {
-      margin: 0 0 10px;
-      font-size: 24px;
+      margin: 0 0 20px;
+      font-size: 28px;
       text-align: center;
+    }
+    #specialInfo {
+      font-size: 14px;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      line-height: 1.4;
     }
     .controls {
       display: flex;
       gap: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
       justify-content: center;
     }
     select, input[type=text], button {
       font-size: 14px;
-      padding: 5px;
-    }
-    #specialInfo {
-      font-size: 12px;
-      margin-bottom: 10px;
-      text-align: center;
+      padding: 8px;
     }
     #player {
       position: relative;
       width: 100%;
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0 auto;
       aspect-ratio: 16/9;
       background: #000;
@@ -56,7 +59,8 @@
 </head>
 <body>
   <div class="wrapper">
-    <h1>Origin SIMID Demos</h1>
+    <h1>ORIGIN SIMID DEMO PLAYER</h1>
+    <div id="specialInfo">This site simulates a CTV player with SIMID protocol enabled. It loads a base mp4 file along with with a synchronized HTML overlay. The overlay can source text, images, and fonts externally and it allows Origin to run unlimited variations of assets based on a single mp4. You can use the first drop down button to select from a few demo campaigns. The second drop down button simulates the VAST programming that passes parameters (such as geos) into the overlay HTML at the time of the bid response.</div>
     <div class="controls">
       <select id="campaignSelect">
         <option value="">Loading campaigns...</option>
@@ -67,7 +71,6 @@
       <input type="text" id="utmField" readonly placeholder="UTM value" />
       <button id="loadButton">Load mp4 & overlay</button>
     </div>
-    <div id="specialInfo">Special Info will appear here</div>
   </div>
   <div id="player">
     <video id="adVideo" playsinline preload="auto"></video>
@@ -156,7 +159,8 @@
       const match = cell.match(/\(([^)]+)\)/);
       utmField.value = match ? match[1] : '';
       const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
-      specialInfoDiv.textContent = row[idxSpecial] || '';
+      const specialText = row[idxSpecial] || '';
+      specialInfoDiv.textContent = specialText;
       updateLoadButton();
     });
 
