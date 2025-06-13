@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 359</title>
+  <title>Origin SIMID Demo Player 402</title>
   <style>
     body, html {
       margin: 0;
@@ -88,22 +88,21 @@
     const optionSelect   = document.getElementById('optionSelect');
     const utmField       = document.getElementById('utmField');
     const loadButton     = document.getElementById('loadButton');
-    // disable load button until selections are made
-    loadButton.disabled = true;
     const specialInfoDiv = document.getElementById('specialInfo');
     const videoEl        = document.getElementById('adVideo');
     const iframeEl       = document.getElementById('overlayFrame');
     
-    // Track whether 'm' key was pressed for unmuted playback
-    let unmuteRequested = false;
+    // Track whether 'm' key was pressed for sound
+    let soundRequested = false;
+    
+    // Disable load button until selections are made
+    loadButton.disabled = true;
 
     // Function to enable/disable load button based on selections
     function updateLoadButton() {
       const campaignSelected = campaignSelect.value !== '';
       const optionSelected = optionSelect.value !== '';
-      const bothSelected = campaignSelected && optionSelected;
-      
-      loadButton.disabled = !bothSelected;
+      loadButton.disabled = !(campaignSelected && optionSelected);
     }
 
     // Fetch entire TSV on load
@@ -115,6 +114,7 @@
         dataRows = all.slice(1);
         console.log('TSV Headers:', headers);
         console.log('Number of data rows:', dataRows.length);
+        
         // Determine campaign column index
         idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
         if (idxCampaign < 0) {
@@ -140,6 +140,7 @@
         updateLoadButton();
         return;
       }
+      
       const row = dataRows.find(r => r[idxCampaign] === selected);
       
       // Show special info immediately when campaign is selected
@@ -169,18 +170,20 @@
       updateLoadButton();
     });
 
-    function loadExperience(muted) {
+    // Hidden keyboard shortcut for sound
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 'm') {
+        soundRequested = true;
+        console.log('Sound requested - next load will have audio');
+      }
+    });
+
+    // Load experience function
+    function startExperience() {
       const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const idIndex = headers.findIndex(h => h.toLowerCase() === 'id');
       const id = row[idIndex];
       const utm = utmField.value;
-      
-      // Debug logging
-      console.log('Selected campaign:', campaignSelect.value);
-      console.log('Row data:', row);
-      console.log('ID index:', idIndex);
-      console.log('ID value:', id);
-      console.log('UTM value:', utm);
       
       if (!id) {
         console.error('No ID found for this campaign');
@@ -192,53 +195,33 @@
       const cacheBuster = `_cb=${Date.now()}`;
       let overlayUrl = `overlay-${id}.html`;
       
-      // Add UTM and cache buster parameters
       if (utm) {
         overlayUrl += `?${utm}&${cacheBuster}`;
       } else {
         overlayUrl += `?${cacheBuster}`;
       }
       
-      console.log('Video URL:', videoUrl);
-      console.log('Overlay URL:', overlayUrl);
-      
-      // If video is already playing and we're unmuting, reload overlay to resync
-      if (!videoEl.paused && unmute && videoEl.muted) {
-        console.log('Unmuting existing video - reloading overlay to maintain sync');
-        videoEl.muted = false;
-        // Reload overlay with new cache buster to force resync
-        iframeEl.src = overlayUrl;
-        setupOverlayMessaging();
-        return;
-      }
+      console.log('Loading video:', videoUrl);
+      console.log('Loading overlay:', overlayUrl);
+      console.log('With sound:', soundRequested);
       
       videoEl.src = videoUrl;
+      videoEl.muted = !soundRequested;
+      videoEl.play();
+      
       iframeEl.src = overlayUrl;
-      videoEl.muted = !unmute;
-      
-      // Add error handling for video loading
-      videoEl.onerror = function() {
-        console.error('Video failed to load:', videoUrl);
-        alert('Error: Video file not found or cannot be loaded');
-      };
-      
-      videoEl.play().catch(error => {
-        console.error('Video play failed:', error);
-        alert('Error: Failed to play video - ' + error.message);
-      });
-      
-      // Add message passing system for SIMID overlay communication
       setupOverlayMessaging();
+      
+      // Reset sound flag
+      soundRequested = false;
     }
 
-    // Handle overlay communication (similar to working version)
+    // Handle overlay communication
     function setupOverlayMessaging() {
-      // Notify overlay that parent has loaded
       iframeEl.addEventListener('load', () => {
         iframeEl.contentWindow.postMessage('parentLoaded', '*');
       });
 
-      // Handle overlay readiness and perform handshake
       window.addEventListener('message', e => {
         if (e.source !== iframeEl.contentWindow) return;
         if (e.data === 'overlayReady') {
@@ -252,18 +235,7 @@
       });
     }
 
-    // Hidden keyboard shortcut for unmuting
-    document.addEventListener('keydown', function(e) {
-      if (e.key.toLowerCase() === 'm') {
-        unmuteRequested = true;
-        console.log('Unmute requested - next load will have sound');
-      }
-    });
-
-    loadButton.addEventListener('click', () => {
-      loadExperience(!unmuteRequested); // Pass true for muted, false for unmuted
-      unmuteRequested = false; // Reset for next load
-    });
+    loadButton.addEventListener('click', startExperience);
   </script>
 </body>
 </html>
