@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 435</title>
+  <title>Origin SIMID Demo Player 446</title>
   <style>
     body, html {
       margin: 0;
@@ -117,6 +117,7 @@
     
     // Track whether 'm' key was pressed for sound
     let soundRequested = false;
+    let actualUtmValue = ''; // Store the real UTM value separately from display
     
     // Disable load button until selections are made
     loadButton.disabled = true;
@@ -212,6 +213,7 @@
       });
       optionSelect.disabled = false;
       utmField.value = '';
+      actualUtmValue = '';
       updateLoadButton();
     });
 
@@ -220,7 +222,15 @@
       const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const cell = row[idxOpt] || '';
       const match = cell.match(/\(([^)]+)\)/);
-      utmField.value = match ? `utm: ?${match[1]}` : '';
+      
+      if (match) {
+        actualUtmValue = match[1]; // Store the real UTM value
+        utmField.value = `utm: ?${match[1]}`; // Display with formatting
+      } else {
+        actualUtmValue = '';
+        utmField.value = '';
+      }
+      
       updateLoadButton();
     });
 
@@ -237,7 +247,7 @@
       const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const idIndex = headers.findIndex(h => h.toLowerCase() === 'id');
       const id = row[idIndex];
-      const utm = utmField.value;
+      const utm = actualUtmValue; // Use the real UTM value, not the display value
       
       if (!id) {
         console.error('No ID found for this campaign');
