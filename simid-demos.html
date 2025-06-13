@@ -117,6 +117,14 @@
       // Populate dropdown
       campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
         campaigns.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+      // Collect unique campaign values, filtering out any falsy
+      const campaigns = [...new Set(
+        dataRows.map(r => r[idxCampaign]).filter(Boolean)
+      )];
+      // Populate dropdown
+      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
+        campaigns.map(c => `<option value="${c}">${c}</option>`).join('');
     }">${c}</option>`).join('');
     }
 
