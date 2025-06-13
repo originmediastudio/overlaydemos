@@ -114,10 +114,6 @@
       campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
         uniq.map(c => `<option value="${c}">${c}</option>`).join('');
     }
-      const uniq = [...new Set(dataRows.map(r => r[idx]).filter(Boolean))];
-      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
-        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
 
     campaignSelect.addEventListener('change', () => {
       const selected = campaignSelect.value;
@@ -127,7 +123,7 @@
         specialInfoDiv.textContent = '';
         return;
       }
-      const row = dataRows.find(r => r[headers.indexOf('campaign')] === selected);
+      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === selected);
       optionSelect.innerHTML = '<option value="">Select option</option>';
       headers.forEach((h,i) => {
         if (/^Option \d+/i.test(h) && row[i]) {
@@ -142,16 +138,16 @@
 
     optionSelect.addEventListener('change', () => {
       const idxOpt = +optionSelect.value;
-      const row = dataRows.find(r => r[headers.indexOf('campaign')] === campaignSelect.value);
+      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === campaignSelect.value);
       const cell = row[idxOpt] || '';
       const match = cell.match(/\(([^)]+)\)/);
       utmField.value = match ? match[1] : '';
-      specialInfoDiv.textContent = row[headers.indexOf('special info')];
+      specialInfoDiv.textContent = row[headers.findIndex(h => h.toLowerCase() === 'special info')];
     });
 
     function loadExperience(unmute) {
-      const row = dataRows.find(r => r[headers.indexOf('campaign')] === campaignSelect.value);
-      const id  = row[headers.indexOf('id')];
+      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === campaignSelect.value);
+      const id  = row[headers.findIndex(h => h.toLowerCase() === 'id')];
       const utm = utmField.value;
       videoEl.src = `https://static.originmedia.tv/website/internal/${id}.mp4`;
       iframeEl.src = `overlay-${id}.html${utm ? '?' + utm : ''}`;
