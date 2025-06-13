@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demos 319</title>
+  <title>Origin SIMID Demos</title>
   <style>
     body, html {
       margin: 0;
@@ -146,7 +146,7 @@
       optionSelect.disabled = false;
       utmField.value = '';
       specialInfoDiv.textContent = '';
-      updateLoadButtons();
+      updateLoadButton();
     });
 
     optionSelect.addEventListener('change', function() {
@@ -157,10 +157,10 @@
       utmField.value = match ? match[1] : '';
       const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
       specialInfoDiv.textContent = row[idxSpecial] || '';
-      updateLoadButtons();
+      updateLoadButton();
     });
 
-    function loadExperience(unmute) {
+    function loadExperience(muted) {
       const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const idIndex = headers.findIndex(h => h.toLowerCase() === 'id');
       const id = row[idIndex];
@@ -243,8 +243,18 @@
       });
     }
 
-    loadSoundBtn.addEventListener('click', () => loadExperience(true));
-    loadMutedBtn.addEventListener('click', () => loadExperience(false));
+    // Hidden keyboard shortcut for unmuting
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 'm') {
+        unmuteRequested = true;
+        console.log('Unmute requested - next load will have sound');
+      }
+    });
+
+    loadButton.addEventListener('click', () => {
+      loadExperience(!unmuteRequested); // Pass inverse because true = muted
+      unmuteRequested = false; // Reset for next load
+    });
   </script>
 </body>
 </html>
