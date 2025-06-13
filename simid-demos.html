@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 402</title>
+  <title>Origin SIMID Demo Player 412</title>
   <style>
     body, html {
       margin: 0;
@@ -26,7 +26,7 @@
       border: 2px solid #fff;
       border-radius: 8px;
       line-height: 1.4;
-      max-width: 1200px;
+      max-width: 1000px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -43,7 +43,7 @@
     #player {
       position: relative;
       width: 100%;
-      max-width: 1200px;
+      max-width: 1000px;
       margin: 0 auto;
       aspect-ratio: 16/9;
       background: #000;
@@ -208,6 +208,18 @@
       videoEl.src = videoUrl;
       videoEl.muted = !soundRequested;
       videoEl.play();
+      
+      // Add debugging for video pause events
+      videoEl.addEventListener('pause', function(e) {
+        console.log('=== VIDEO PAUSED ===');
+        console.log('Time:', videoEl.currentTime);
+        console.log('Duration:', videoEl.duration);
+        console.log('Ended:', videoEl.ended);
+        console.log('Error:', videoEl.error);
+        console.log('Ready state:', videoEl.readyState);
+        console.log('Network state:', videoEl.networkState);
+        console.trace('Pause origin');
+      });
       
       iframeEl.src = overlayUrl;
       setupOverlayMessaging();
