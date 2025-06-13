@@ -50,6 +50,7 @@
     #player iframe {
       border: 0;
       pointer-events: none;
+      z-index: 10;
     }
   </style>
 </head>
@@ -180,7 +181,15 @@
       }
       
       const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
-      const overlayUrl = `https://originmediastudio.github.io/overlaydemos/overlay-${id}.html${utm ? '?' + utm : ''}`;
+      const cacheBuster = `_cb=${Date.now()}`;
+      let overlayUrl = `overlay-${id}.html`;
+      
+      // Add UTM and cache buster parameters
+      if (utm) {
+        overlayUrl += `?${utm}&${cacheBuster}`;
+      } else {
+        overlayUrl += `?${cacheBuster}`;
+      }
       
       console.log('Video URL:', videoUrl);
       console.log('Overlay URL:', overlayUrl);
@@ -198,6 +207,30 @@
       videoEl.play().catch(error => {
         console.error('Video play failed:', error);
         alert('Error: Failed to play video - ' + error.message);
+      });
+      
+      // Add message passing system for SIMID overlay communication
+      setupOverlayMessaging();
+    }
+
+    // Handle overlay communication (similar to working version)
+    function setupOverlayMessaging() {
+      // Notify overlay that parent has loaded
+      iframeEl.addEventListener('load', () => {
+        iframeEl.contentWindow.postMessage('parentLoaded', '*');
+      });
+
+      // Handle overlay readiness and perform handshake
+      window.addEventListener('message', e => {
+        if (e.source !== iframeEl.contentWindow) return;
+        if (e.data === 'overlayReady') {
+          iframeEl.contentWindow.postMessage({
+            type: 'init',
+            currentTime: videoEl.currentTime,
+            duration: videoEl.duration,
+            fps: 24
+          }, '*');
+        }
       });
     }
 
