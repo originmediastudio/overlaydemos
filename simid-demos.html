@@ -76,7 +76,7 @@
 
   <script>
     const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
-    let headers, dataRows;
+    let headers = [], dataRows = [];
 
     const campaignSelect = document.getElementById('campaignSelect');
     const optionSelect   = document.getElementById('optionSelect');
@@ -91,8 +91,7 @@
     fetch(tsvUrl)
       .then(r => r.text())
       .then(text => {
-        // parse TSV and trim headers
-        const all = text.trim().split('\n').map(r => r.split('\t'));
+        const all = text.trim().split('\n').map(line => line.split('\t'));
         headers = all[0].map(h => h.trim());
         dataRows = all.slice(1);
 
@@ -103,39 +102,29 @@
       });
 
     function populateCampaigns() {
-      // Find "campaign" column (case-insensitive)
-      const idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
-      if (idxCampaign < 0) {
-        console.error('populateCampaigns: "Campaign" header not found in', headers);
+      const idx = headers.findIndex(h => h.toLowerCase() === 'campaign');
+      if (idx < 0) {
+        console.error('Campaign header not found', headers);
         campaignSelect.innerHTML = '<option value="">No campaigns available</option>';
         return;
       }
-      // Collect unique campaign values, filtering out any falsy
-      const campaigns = [...new Set(
-        dataRows.map(r => r[idxCampaign]).filter(Boolean)
-      )];
-      // Populate dropdown
+      const uniq = [...new Set(dataRows.map(r => r[idx]).filter(Boolean))];
       campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
-        campaigns.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-      // Collect unique campaign values, filtering out any falsy
-      const campaigns = [...new Set(
-        dataRows.map(r => r[idxCampaign]).filter(Boolean)
-      )];
-      // Populate dropdown
-      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
-        campaigns.map(c => `<option value="${c}">${c}</option>`).join('');
-    }">${c}</option>`).join('');
+        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     campaignSelect.addEventListener('change', () => {
       const selected = campaignSelect.value;
-      if (!selected) return resetOption();
-      const row = dataRows.find(r => r[headers.indexOf('Campaign')] === selected);
-      // find all Option# columns
-      optionSelect.innerHTML = '';
-      headers.forEach((h, i) => {
-        if (h.startsWith('Option ') && row[i]) {
+      if (!selected) {
+        optionSelect.disabled = true;
+        utmField.value = '';
+        specialInfoDiv.textContent = '';
+        return;
+      }
+      const row = dataRows.find(r => r[headers.indexOf('campaign')] === selected);
+      optionSelect.innerHTML = '<option value="">Select option</option>';
+      headers.forEach((h,i) => {
+        if (/^Option \d+/i.test(h) && row[i]) {
           const display = row[i].replace(/ *\([^)]*\)/, '');
           optionSelect.innerHTML += `<option value="${i}">${display}</option>`;
         }
@@ -147,17 +136,17 @@
 
     optionSelect.addEventListener('change', () => {
       const idxOpt = +optionSelect.value;
-      const row = dataRows.find(r => r[headers.indexOf('Campaign')] === campaignSelect.value);
-      const cell = row[idxOpt];
+      const row = dataRows.find(r => r[headers.indexOf('campaign')] === campaignSelect.value);
+      const cell = row[idxOpt] || '';
       const match = cell.match(/\(([^)]+)\)/);
       utmField.value = match ? match[1] : '';
-      specialInfoDiv.textContent = row[headers.indexOf('Special Info')];
+      specialInfoDiv.textContent = row[headers.indexOf('special info')];
     });
 
     function loadExperience(unmute) {
-      const row = dataRows.find(r => r[headers.indexOf('Campaign')] === campaignSelect.value);
-      const id    = row[headers.indexOf('ID')];
-      const utm   = utmField.value;
+      const row = dataRows.find(r => r[headers.indexOf('campaign')] === campaignSelect.value);
+      const id  = row[headers.indexOf('id')];
+      const utm = utmField.value;
       videoEl.src = `https://static.originmedia.tv/website/internal/${id}.mp4`;
       iframeEl.src = `overlay-${id}.html${utm ? '?' + utm : ''}`;
       videoEl.muted = !unmute;
