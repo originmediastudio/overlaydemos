@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 350</title>
+  <title>Origin SIMID Demo Player 353</title>
   <style>
     body, html {
       margin: 0;
@@ -214,7 +214,6 @@
       
       videoEl.src = videoUrl;
       iframeEl.src = overlayUrl;
-      videoEl.muted = !unmute;
       
       // Add error handling for video loading
       videoEl.onerror = function() {
@@ -260,10 +259,6 @@
       }
     });
 
-    loadButton.addEventListener('click', () => {
-      loadExperience(!unmuteRequested); // Pass true for muted, false for unmuted
-      unmuteRequested = false; // Reset for next load
-    });
   </script>
 </body>
 </html>
