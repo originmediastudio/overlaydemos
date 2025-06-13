@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 423</title>
+  <title>Origin SIMID Demo Player 435</title>
   <style>
     body, html {
       margin: 0;
@@ -26,7 +26,7 @@
       border: 2px solid #fff;
       border-radius: 8px;
       line-height: 1.4;
-      max-width: 1000px;
+      max-width: 850px;
       margin-left: auto;
       margin-right: auto;
     }
@@ -36,9 +36,32 @@
       margin-bottom: 20px;
       justify-content: center;
     }
-    select, input[type=text], button {
+    select {
       font-size: 14px;
       padding: 8px;
+      border-radius: 4px;
+    }
+    #utmField {
+      font-family: monospace;
+      font-size: 12px;
+      padding: 8px;
+      background: transparent;
+      border: 1px dotted #fff;
+      border-radius: 0;
+      color: #fff;
+    }
+    #loadButton {
+      font-size: 14px;
+      padding: 8px 16px;
+      background: #34cc6a;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+    #loadButton:disabled {
+      background: #666;
+      cursor: not-allowed;
     }
     #player {
       position: relative;
@@ -71,7 +94,7 @@
       <select id="optionSelect" disabled>
         <option value="">Select campaign first</option>
       </select>
-      <input type="text" id="utmField" readonly placeholder="UTM value" />
+      <input type="text" id="utmField" readonly placeholder="utm: ?" />
       <button id="loadButton">Load mp4 & overlay</button>
     </div>
   </div>
@@ -197,7 +220,7 @@
       const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const cell = row[idxOpt] || '';
       const match = cell.match(/\(([^)]+)\)/);
-      utmField.value = match ? match[1] : '';
+      utmField.value = match ? `utm: ?${match[1]}` : '';
       updateLoadButton();
     });
 
