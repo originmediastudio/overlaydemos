@@ -76,7 +76,7 @@
 
   <script>
     const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
-    let headers = [], dataRows = [];
+    let headers = [], dataRows = [], idxCampaign = -1;
 
     const campaignSelect = document.getElementById('campaignSelect');
     const optionSelect   = document.getElementById('optionSelect');
@@ -94,38 +94,36 @@
         const all = text.trim().split('\n').map(line => line.split('\t'));
         headers = all[0].map(h => h.trim());
         dataRows = all.slice(1);
-
         console.log('TSV Headers:', headers);
         console.log('Number of data rows:', dataRows.length);
-
+        // Determine campaign column index
+        idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
+        if (idxCampaign < 0) {
+          console.warn('Campaign header not found, defaulting to first column.');
+          idxCampaign = 0;
+        }
         populateCampaigns();
       });
 
     function populateCampaigns() {
-      // Attempt to find "campaign" column (case-insensitive)
-      let idx = headers.findIndex(h => h.toLowerCase() === 'campaign');
-      if (idx < 0) {
-        console.warn('Campaign header not found, defaulting to first column. Headers:', headers);
-        idx = 0;
-      }
-      // Collect unique campaign values, filtering out any falsy
-      const uniq = [...new Set(dataRows.map(r => r[idx]).filter(Boolean))];
-      // Populate dropdown
+      const uniq = [...new Set(dataRows.map(r => r[idxCampaign]).filter(Boolean))];
       campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
         uniq.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    campaignSelect.addEventListener('change', () => {
-      const selected = campaignSelect.value;
+    campaignSelect.addEventListener('change', function() {
+      const selected = this.value;
       if (!selected) {
         optionSelect.disabled = true;
+        optionSelect.innerHTML = '<option value="">Select campaign first</option>';
         utmField.value = '';
         specialInfoDiv.textContent = '';
         return;
       }
-      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === selected);
+      const row = dataRows.find(r => r[idxCampaign] === selected);
+      // Populate options dropdown
       optionSelect.innerHTML = '<option value="">Select option</option>';
-      headers.forEach((h,i) => {
+      headers.forEach((h, i) => {
         if (/^Option \d+/i.test(h) && row[i]) {
           const display = row[i].replace(/ *\([^)]*\)/, '');
           optionSelect.innerHTML += `<option value="${i}">${display}</option>`;
@@ -136,19 +134,20 @@
       specialInfoDiv.textContent = '';
     });
 
-    optionSelect.addEventListener('change', () => {
-      const idxOpt = +optionSelect.value;
-      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === campaignSelect.value);
+    optionSelect.addEventListener('change', function() {
+      const idxOpt = parseInt(this.value);
+      const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
       const cell = row[idxOpt] || '';
       const match = cell.match(/\(([^)]+)\)/);
       utmField.value = match ? match[1] : '';
-      specialInfoDiv.textContent = row[headers.findIndex(h => h.toLowerCase() === 'special info')];
+      const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
+      specialInfoDiv.textContent = row[idxSpecial] || '';
     });
 
     function loadExperience(unmute) {
-      const row = dataRows.find(r => r[headers.findIndex(h => h.toLowerCase() === 'campaign')] === campaignSelect.value);
-      const id  = row[headers.findIndex(h => h.toLowerCase() === 'id')];
-      const utm = utmField.value;
+      const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
+      const id    = row[headers.findIndex(h => h.toLowerCase() === 'id')];
+      const utm   = utmField.value;
       videoEl.src = `https://static.originmedia.tv/website/internal/${id}.mp4`;
       iframeEl.src = `overlay-${id}.html${utm ? '?' + utm : ''}`;
       videoEl.muted = !unmute;
