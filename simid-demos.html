@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+update<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demos 309</title>
+  <title>Origin SIMID Demos 315</title>
   <style>
     body, html {
       margin: 0;
@@ -65,8 +65,7 @@
         <option value="">Select campaign first</option>
       </select>
       <input type="text" id="utmField" readonly placeholder="UTM value" />
-      <button id="loadSound">Load with sound</button>
-      <button id="loadMuted">Load without sound</button>
+      <button id="loadButton">Load mp4 & overlay</button>
     </div>
     <div id="specialInfo">Special Info will appear here</div>
   </div>
@@ -82,23 +81,23 @@
     const campaignSelect = document.getElementById('campaignSelect');
     const optionSelect   = document.getElementById('optionSelect');
     const utmField       = document.getElementById('utmField');
-    const loadSoundBtn   = document.getElementById('loadSound');
-    const loadMutedBtn   = document.getElementById('loadMuted');
-    // disable load buttons until selections are made
-    loadSoundBtn.disabled = true;
-    loadMutedBtn.disabled = true;
+    const loadButton     = document.getElementById('loadButton');
+    // disable load button until selections are made
+    loadButton.disabled = true;
     const specialInfoDiv = document.getElementById('specialInfo');
     const videoEl        = document.getElementById('adVideo');
     const iframeEl       = document.getElementById('overlayFrame');
+    
+    // Track whether 'm' key was pressed for unmuted playback
+    let unmuteRequested = false;
 
-    // Function to enable/disable load buttons based on selections
-    function updateLoadButtons() {
+    // Function to enable/disable load button based on selections
+    function updateLoadButton() {
       const campaignSelected = campaignSelect.value !== '';
       const optionSelected = optionSelect.value !== '';
       const bothSelected = campaignSelected && optionSelected;
       
-      loadSoundBtn.disabled = !bothSelected;
-      loadMutedBtn.disabled = !bothSelected;
+      loadButton.disabled = !bothSelected;
     }
 
     // Fetch entire TSV on load
@@ -132,7 +131,7 @@
         optionSelect.innerHTML = '<option value="">Select campaign first</option>';
         utmField.value = '';
         specialInfoDiv.textContent = '';
-        updateLoadButtons();
+        updateLoadButton();
         return;
       }
       const row = dataRows.find(r => r[idxCampaign] === selected);
