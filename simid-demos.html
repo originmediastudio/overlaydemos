@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 40</title>
+  <title>Origin SIMID Demo Player 43</title>
   <style>
     body, html {
       margin: 0;
@@ -135,13 +135,13 @@
     });
 
     // Set up overlay messaging once (like the working version)
-    iframeEl.addEventListener('load', () => {
+    let overlayLoadHandler = () => {
       if (iframeEl.contentWindow) {
         iframeEl.contentWindow.postMessage('parentLoaded', '*');
       }
-    });
-
-    window.addEventListener('message', e => {
+    };
+    
+    let messageHandler = (e) => {
       if (e.source !== iframeEl.contentWindow) return;
       if (e.data === 'overlayReady') {
         iframeEl.contentWindow.postMessage({
@@ -151,7 +151,10 @@
           fps: 24
         }, '*');
       }
-    });
+    };
+
+    iframeEl.addEventListener('load', overlayLoadHandler);
+    window.addEventListener('message', messageHandler);
 
     // Function to enable/disable load button based on selections
     function updateLoadButton() {
@@ -254,6 +257,10 @@
         alert('Error: No ID found for this campaign');
         return;
       }
+      
+      // Stop any existing video playback first
+      videoEl.pause();
+      videoEl.currentTime = 0;
       
       const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
       const cacheBuster = `_cb=${Date.now()}`;
