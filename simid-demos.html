@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 537</title>
+  <title>Origin SIMID Demo Player 40</title>
   <style>
     body, html {
       margin: 0;
@@ -255,7 +255,7 @@
         return;
       }
       
-      const videoUrl = `https://static.originmedia.tv/website/internal/maine.mp4`;
+      const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
       const cacheBuster = `_cb=${Date.now()}`;
       let overlayUrl = `overlay-${id}.html`;
       
@@ -264,6 +264,15 @@
       } else {
         overlayUrl += `?${cacheBuster}`;
       }
+      
+      // Debug the URL construction
+      console.log('=== URL CONSTRUCTION DEBUG ===');
+      console.log('Raw ID from TSV:', JSON.stringify(id));
+      console.log('ID length:', id.length);
+      console.log('ID char codes:', Array.from(id).map(c => c.charCodeAt(0)));
+      console.log('Constructed video URL:', JSON.stringify(videoUrl));
+      console.log('Video URL length:', videoUrl.length);
+      console.log('================================');
       
       console.log('Loading video:', videoUrl);
       console.log('Loading overlay:', overlayUrl);
