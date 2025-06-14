@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 43</title>
+  <title>Origin SIMID Demo Player 46</title>
   <style>
     body, html {
       margin: 0;
@@ -99,7 +99,9 @@
     </div>
   </div>
   <div id="player">
-    <video id="adVideo" autoplay muted playsinline preload="auto"></video>
+    <video id="adVideo" autoplay muted playsinline preload="auto">
+      <source id="videoSource" src="" type="video/mp4">
+    </video>
     <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
   </div>
 
@@ -113,6 +115,7 @@
     const loadButton     = document.getElementById('loadButton');
     const specialInfoDiv = document.getElementById('specialInfo');
     const videoEl        = document.getElementById('adVideo');
+    const videoSource    = document.getElementById('videoSource');
     const iframeEl       = document.getElementById('overlayFrame');
     
     // Track whether 'm' key was pressed for sound
@@ -285,8 +288,9 @@
       console.log('Loading overlay:', overlayUrl);
       console.log('With sound:', soundRequested);
       
-      // Use direct src assignment instead of innerHTML to avoid ORB errors
-      videoEl.src = videoUrl;
+      // Use the exact same method as your working version - modify the source element
+      videoSource.src = videoUrl;
+      videoEl.load(); // Force video to reload with new source
       videoEl.muted = !soundRequested;
       videoEl.play();
       
