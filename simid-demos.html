@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Origin SIMID Demo Player 446</title>
+  <title>Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -269,9 +269,8 @@
       console.log('Loading overlay:', overlayUrl);
       console.log('With sound:', soundRequested);
       
-      // Use innerHTML to set source like the working version
-      videoEl.innerHTML = `<source src="${videoUrl}" type="video/mp4">`;
-      videoEl.load(); // Force reload of video with new source
+      // Use direct src assignment instead of innerHTML to avoid ORB errors
+      videoEl.src = videoUrl;
       videoEl.muted = !soundRequested;
       videoEl.play();
       
