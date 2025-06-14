@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Origin SIMID Demo Player</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #000;
+      color: #fff;
+    }
+    .wrapper {
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
+      text-align: center;
+    }
+    #specialInfo {
+      font-size: 14px;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      line-height: 1.4;
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    select {
+      font-size: 14px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    #utmField {
+      font-family: monospace;
+      font-size: 12px;
+      padding: 8px;
+      background: transparent;
+      border: 1px dotted #fff;
+      border-radius: 0;
+      color: #fff;
+    }
+    #loadButton {
+      font-size: 14px;
+      padding: 8px 16px;
+      background: #34cc6a;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+    }
+    #loadButton:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #player {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      aspect-ratio: 16/9;
+      background: #000;
+    }
+    #player video, #player iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #player iframe {
+      border: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>ORIGIN SIMID DEMO PLAYER</h1>
+    <div id="specialInfo">This site simulates a CTV player with SIMID protocol enabled. It loads a base mp4 file along with with a synchronized HTML overlay. The overlay can source text, images, and fonts externally and it allows Origin to run unlimited variations of assets based on a single mp4. You can use the first drop down button to select from a few demo campaigns. The second drop down button simulates the VAST programming that passes parameters (such as geos) into the overlay HTML at the time of the bid response.</div>
+    <div class="controls">
+      <select id="campaignSelect">
+        <option value="">Loading campaigns...</option>
+      </select>
+      <select id="optionSelect" disabled>
+        <option value="">Select campaign first</option>
+      </select>
+      <input type="text" id="utmField" readonly placeholder="utm: ?" />
+      <button id="loadButton">Load mp4 & overlay</button>
+    </div>
+  </div>
+  <div id="player">
+    <video id="adVideo" autoplay muted playsinline preload="auto">
+      <source id="videoSource" src="" type="video/mp4">
+    </video>
+    <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
+  </div>
+
+  <script>
+    const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
+    let headers = [], dataRows = [], idxCampaign = -1;
+
+    const campaignSelect = document.getElementById('campaignSelect');
+    const optionSelect   = document.getElementById('optionSelect');
+    const utmField       = document.getElementById('utmField');
+    const loadButton     = document.getElementById('loadButton');
+    const specialInfoDiv = document.getElementById('specialInfo');
+    const videoEl        = document.getElementById('adVideo');
+    const videoSource    = document.getElementById('videoSource');
+    const iframeEl       = document.getElementById('overlayFrame');
+    
+    // Track whether 'm' key was pressed for sound
+    let soundRequested = false;
+    let actualUtmValue = ''; // Store the real UTM value separately from display
+    
+    // Disable load button until selections are made
+    loadButton.disabled = true;
+
+    // Set up pause debugging once (not multiple times)
+    videoEl.addEventListener('pause', function(e) {
+      console.log('=== VIDEO PAUSED ===');
+      console.log('Time:', videoEl.currentTime);
+      console.log('Duration:', videoEl.duration);
+      console.log('Ended:', videoEl.ended);
+      console.log('Error:', videoEl.error);
+      console.log('Ready state:', videoEl.readyState);
+      console.log('Network state:', videoEl.networkState);
+      console.trace('Pause origin');
+    });
+
+    // Set up overlay messaging once (like the working version)
+    let overlayLoadHandler = () => {
+      if (iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage('parentLoaded', '*');
+      }
+    };
+    
+    let messageHandler = (e) => {
+      if (e.source !== iframeEl.contentWindow) return;
+      if (e.data === 'overlayReady') {
+        iframeEl.contentWindow.postMessage({
+          type: 'init',
+          currentTime: videoEl.currentTime,
+          duration: videoEl.duration,
+          fps: 24
+        }, '*');
+        
+        // Start continuous sync updates
+        startTimeSyncUpdates();
+      }
+    };
+
+    iframeEl.addEventListener('load', overlayLoadHandler);
+    window.addEventListener('message', messageHandler);
+    
+    // Continuous time sync system
+    let syncInterval = null;
+    
+    function startTimeSyncUpdates() {
+      // Clear any existing sync
+      if (syncInterval) clearInterval(syncInterval);
+      
+      // Send video time updates every 100ms for tight sync
+      syncInterval = setInterval(() => {
+        if (iframeEl.contentWindow && !videoEl.paused) {
+          iframeEl.contentWindow.postMessage({
+            type: 'timeUpdate',
+            currentTime: videoEl.currentTime,
+            paused: videoEl.paused
+          }, '*');
+        }
+      }, 100); // 10 times per second
+    }
+    
+    function stopTimeSyncUpdates() {
+      if (syncInterval) {
+        clearInterval(syncInterval);
+        syncInterval = null;
+      }
+    }
+    
+    // Stop sync when video ends or is paused
+    videoEl.addEventListener('ended', stopTimeSyncUpdates);
+    videoEl.addEventListener('pause', stopTimeSyncUpdates);
+    videoEl.addEventListener('play', startTimeSyncUpdates);
+
+    // Function to enable/disable load button based on selections
+    function updateLoadButton() {
+      const campaignSelected = campaignSelect.value !== '';
+      const optionSelected = optionSelect.value !== '';
+      loadButton.disabled = !(campaignSelected && optionSelected);
+    }
+
+    // Fetch entire TSV on load
+    fetch(tsvUrl)
+      .then(r => r.text())
+      .then(text => {
+        const all = text.trim().split('\n').map(line => line.split('\t'));
+        headers = all[0].map(h => h.trim());
+        dataRows = all.slice(1);
+        console.log('TSV Headers:', headers);
+        console.log('Number of data rows:', dataRows.length);
+        
+        // Determine campaign column index
+        idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
+        if (idxCampaign < 0) {
+          console.warn('Campaign header not found, defaulting to first column.');
+          idxCampaign = 0;
+        }
+        populateCampaigns();
+      });
+
+    function populateCampaigns() {
+      const uniq = [...new Set(dataRows.map(r => r[idxCampaign]).filter(Boolean))];
+      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
+        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    campaignSelect.addEventListener('change', function() {
+      const selected = this.value;
+      if (!selected) {
+        optionSelect.disabled = true;
+        optionSelect.innerHTML = '<option value="">Select campaign first</option>';
+        utmField.value = '';
+        specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It loads a base mp4 file along with with a synchronized HTML overlay. The overlay can source text, images, and fonts externally and it allows Origin to run unlimited variations of assets based on a single mp4. You can use the first drop down button to select from a few demo campaigns. The second drop down button simulates the VAST programming that passes parameters (such as geos) into the overlay HTML at the time of the bid response.';
+        updateLoadButton();
+        return;
+      }
+      
+      const row = dataRows.find(r => r[idxCampaign] === selected);
+      
+      // Show special info immediately when campaign is selected
+      const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
+      const specialText = row[idxSpecial] || '';
+      specialInfoDiv.textContent = specialText;
+      
+      // Populate options dropdown
+      optionSelect.innerHTML = '<option value="">Select option</option>';
+      headers.forEach((h, i) => {
+        if (/^Option \d+/i.test(h) && row[i]) {
+          const display = row[i].replace(/ *\([^)]*\)/, '');
+          optionSelect.innerHTML += `<option value="${i}">${display}</option>`;
+        }
+      });
+      optionSelect.disabled = false;
+      utmField.value = '';
+      actualUtmValue = '';
+      updateLoadButton();
+    });
+
+    optionSelect.addEventListener('change', function() {
+      const idxOpt = parseInt(this.value);
+      const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
+      const cell = row[idxOpt] || '';
+      const match = cell.match(/\(([^)]+)\)/);
+      
+      if (match) {
+        actualUtmValue = match[1]; // Store the real UTM value
+        utmField.value = `utm: ?${match[1]}`; // Display with formatting
+      } else {
+        actualUtmValue = '';
+        utmField.value = '';
+      }
+      
+      updateLoadButton();
+    });
+
+    // Hidden keyboard shortcut for sound
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 'm') {
+        soundRequested = true;
+        console.log('Sound requested - next load will have audio');
+      }
+    });
+
+    // Load experience function
+    function startExperience() {
+      const row = dataRows.find(r => r[idxCampaign] === campaignSelect.value);
+      const idIndex = headers.findIndex(h => h.toLowerCase() === 'id');
+      const id = row[idIndex];
+      const utm = actualUtmValue; // Use the real UTM value, not the display value
+      
+      if (!id) {
+        console.error('No ID found for this campaign');
+        alert('Error: No ID found for this campaign');
+        return;
+      }
+      
+      // Stop any existing video playback first
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      
+      const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
+      const cacheBuster = `_cb=${Date.now()}`;
+      let overlayUrl = `overlay-${id}.html`;
+      
+      if (utm) {
+        overlayUrl += `?${utm}&${cacheBuster}`;
+      } else {
+        overlayUrl += `?${cacheBuster}`;
+      }
+      
+      // Debug the URL construction
+      console.log('=== URL CONSTRUCTION DEBUG ===');
+      console.log('Raw ID from TSV:', JSON.stringify(id));
+      console.log('ID length:', id.length);
+      console.log('ID char codes:', Array.from(id).map(c => c.charCodeAt(0)));
+      console.log('Constructed video URL:', JSON.stringify(videoUrl));
+      console.log('Video URL length:', videoUrl.length);
+      console.log('================================');
+      
+      console.log('Loading video:', videoUrl);
+      console.log('Loading overlay:', overlayUrl);
+      console.log('With sound:', soundRequested);
+      
+      // Use the exact same method as your working version - modify the source element
+      videoSource.src = videoUrl;
+      videoEl.load(); // Force video to reload with new source
+      videoEl.muted = !soundRequested;
+      videoEl.play();
+      
+      iframeEl.src = overlayUrl;
+      
+      // Reset sound flag
+      soundRequested = false;
+    }
+
+    loadButton.addEventListener('click', startExperience);
+  </script>
+</body>
+</html>
