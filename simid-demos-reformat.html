@@ -34,10 +34,12 @@
       display: flex;
       gap: 15px;
       margin-bottom: 20px;
-      max-width: 850px;
+      max-width: 890px;
       margin-left: auto;
       margin-right: auto;
       align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
     }
     .controls-left {
       flex: 0 0 auto;
@@ -54,7 +56,6 @@
       font-size: 11px;
       background: #333;
       color: #fff;
-      border: 1px solid #555;
       border-radius: 4px;
       padding: 8px;
       max-height: 60px;
@@ -117,9 +118,6 @@
       z-index: 10;
     }
     #toggleAudioButton {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
       background: #4a90e2;
       color: white;
       border: none;
@@ -127,9 +125,10 @@
       padding: 4px 12px;
       font-size: 11px;
       cursor: pointer;
-      z-index: 20;
       opacity: 0.8;
       transition: opacity 0.2s;
+      margin: 10px auto 0;
+      display: block;
     }
     #toggleAudioButton:hover {
       opacity: 1;
@@ -145,8 +144,7 @@
 <body>
   <div class="wrapper">
     <h1>ORIGIN SIMID DEMO PLAYER</h1>
-    <div id="specialInfo">This site simulates a CTV player with SIMID protocol enabled. It demonstrates various data sourcing methods used in programmatic video advertising. Select a campaign to see different input methods: dropdown selection (like DMA targeting), text entry (like audience segment lookup), random selection (for A/B testing), or simple loading (for pre-configured creatives). The parent player sources campaign data and passes it to the synchronized HTML overlay via postMessage, mimicking real VAST ad server behavior.</div>
-    <div class="controls">
+    <div id="specialInfo">This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.     <div class="controls">
       <div class="controls-left">
         <select id="campaignSelect">
           <option value="">Loading campaigns...</option>
@@ -169,8 +167,8 @@
       <source id="videoSource" src="" type="video/mp4">
     </video>
     <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
-    <button id="toggleAudioButton" class="hidden">Toggle Audio</button>
   </div>
+  <button id="toggleAudioButton" class="hidden">Toggle Audio</button>
 
   <script>
     const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
@@ -275,8 +273,17 @@
     }
 
     function displayPostMessageData(data) {
-      const jsonString = JSON.stringify(data, null, 2);
-      codeDisplay.textContent = jsonString;
+      // Show the actual postMessage structure
+      const postMessageData = {
+        type: 'campaignData',
+        ...data
+      };
+      
+      // Remove the outer brackets and format nicely
+      const jsonString = JSON.stringify(postMessageData, null, 2);
+      const withoutBrackets = jsonString.slice(1, -1).trim();
+      
+      codeDisplay.textContent = withoutBrackets;
       codeDisplay.classList.remove('hidden');
     }
 
@@ -314,7 +321,13 @@
       if (specialInfoDiv) {
         const specialText = row[idxSpecial] || '';
         console.log('Special text:', specialText);
-        specialInfoDiv.textContent = specialText;
+        
+        // Use default text if no special info provided
+        if (specialText.trim() === '') {
+          specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, customized by data. Select a demonstration campaign to reveal additional options that would ordinarily be determined by the ad server, based on the winning bid (such as device geo). This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.';
+        } else {
+          specialInfoDiv.textContent = specialText;
+        }
       } else {
         console.error('specialInfoDiv element not found!');
       }
