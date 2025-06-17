@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Origin SIMID Demo Player</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #000;
+      color: #fff;
+    }
+    .wrapper {
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
+      text-align: center;
+    }
+    #specialInfo {
+      font-size: 14px;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      line-height: 1.4;
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+    select, input[type=text], button {
+      font-size: 14px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    #campaignSelect {
+      border-radius: 4px;
+    }
+    #textEntry {
+      font-family: monospace;
+      font-size: 12px;
+      background: #333;
+      border: 1px solid #fff;
+      color: #fff;
+    }
+    button {
+      background: #34cc6a;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      padding: 8px 16px;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #player {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      aspect-ratio: 16/9;
+      background: #000;
+    }
+    #player video, #player iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #player iframe {
+      border: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>ORIGIN SIMID DEMO PLAYER</h1>
+This site simulates a CTV player with SIMID protocol enabled. It demonstrates how various data sourcing methods can customize synchronized HTML overlays for a single base mp4 file. Select a demonstration campaign to see options that would ordinarily be determined by the ad server, based on the winning bid, such as viewer geography. This site will then source JSON data, just like an ad server preparing a full VAST response for a won bid. That JSON data will be passed to the synchronized HTML overlay via postMessage.    <div class="controls">
+      <select id="campaignSelect">
+        <option value="">Loading campaigns...</option>
+      </select>
+      
+      <!-- Dynamic controls that appear based on campaign selection -->
+      <select id="dynamicDropdown" class="hidden"></select>
+      <input type="text" id="textEntry" class="hidden" />
+      <button id="enterButton" class="hidden">Enter</button>
+      <button id="randomButton" class="hidden">Random</button>
+      <button id="loadButton" class="hidden">Load mp4 & overlay</button>
+    </div>
+  </div>
+  <div id="player">
+    <video id="adVideo" autoplay muted playsinline preload="auto">
+      <source id="videoSource" src="" type="video/mp4">
+    </video>
+    <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
+  </div>
+
+  <script>
+    const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
+    let headers = [], dataRows = [], idxCampaign = -1;
+    let currentCampaignData = null;
+    let currentJsonData = null;
+
+    const campaignSelect = document.getElementById('campaignSelect');
+    const specialInfoDiv = document.getElementById('specialInfo');
+    const videoEl = document.getElementById('adVideo');
+    const videoSource = document.getElementById('videoSource');
+    const iframeEl = document.getElementById('overlayFrame');
+    
+    // Dynamic controls
+    const dynamicDropdown = document.getElementById('dynamicDropdown');
+    const textEntry = document.getElementById('textEntry');
+    const enterButton = document.getElementById('enterButton');
+    const randomButton = document.getElementById('randomButton');
+    const loadButton = document.getElementById('loadButton');
+
+    // Set up pause debugging
+    videoEl.addEventListener('pause', function(e) {
+      console.log('=== VIDEO PAUSED ===');
+      console.log('Time:', videoEl.currentTime);
+      console.log('Duration:', videoEl.duration);
+      console.log('Ended:', videoEl.ended);
+      console.log('Error:', videoEl.error);
+      console.log('Ready state:', videoEl.readyState);
+      console.log('Network state:', videoEl.networkState);
+      console.trace('Pause origin');
+    });
+
+    // Set up overlay messaging
+    let overlayLoadHandler = () => {
+      if (iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage('parentLoaded', '*');
+      }
+    };
+    
+    let messageHandler = (e) => {
+      if (e.source !== iframeEl.contentWindow) return;
+      if (e.data === 'overlayReady') {
+        iframeEl.contentWindow.postMessage({
+          type: 'init',
+          currentTime: videoEl.currentTime,
+          duration: videoEl.duration
+        }, '*');
+      }
+    };
+
+    iframeEl.addEventListener('load', overlayLoadHandler);
+    window.addEventListener('message', messageHandler);
+    
+    // Simple 'm' key toggle for current video audio
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 'm') {
+        videoEl.muted = !videoEl.muted;
+        console.log('Video muted:', videoEl.muted);
+      }
+    });
+
+    // Fetch TSV data
+    fetch(tsvUrl)
+      .then(r => r.text())
+      .then(text => {
+        const all = text.trim().split('\n').map(line => line.split('\t'));
+        headers = all[0].map(h => h.trim());
+        dataRows = all.slice(1);
+        console.log('TSV Headers:', headers);
+        console.log('Number of data rows:', dataRows.length);
+        
+        idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
+        if (idxCampaign < 0) {
+          console.warn('Campaign header not found, defaulting to first column.');
+          idxCampaign = 0;
+        }
+        populateCampaigns();
+      });
+
+    function populateCampaigns() {
+      const uniq = [...new Set(dataRows.map(r => r[idxCampaign]).filter(Boolean))];
+      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
+        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function hideAllDynamicControls() {
+      dynamicDropdown.classList.add('hidden');
+      textEntry.classList.add('hidden');
+      enterButton.classList.add('hidden');
+      randomButton.classList.add('hidden');
+      loadButton.classList.add('hidden');
+    }
+
+    function resetCampaignSelection() {
+      campaignSelect.value = '';
+      hideAllDynamicControls();
+      specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It loads a base mp4 file along with with a synchronized HTML overlay. The overlay can source text, images, and fonts externally and it allows Origin to run unlimited variations of assets based on a single mp4. You can use the first drop down button to select from a few demo campaigns. The second drop down button simulates the VAST programming that passes parameters (such as geos) into the overlay HTML at the time of the bid response.';
+    }
+
+    campaignSelect.addEventListener('change', function() {
+      const selected = this.value;
+      hideAllDynamicControls();
+      
+      if (!selected) {
+        resetCampaignSelection();
+        return;
+      }
+      
+      const row = dataRows.find(r => r[idxCampaign] === selected);
+      currentCampaignData = row;
+      
+      // Show special info
+      const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
+      const specialText = row[idxSpecial] || '';
+      specialInfoDiv.textContent = specialText;
+      
+      // Get data and input types
+      const idxData = headers.findIndex(h => h.toLowerCase() === 'data');
+      const idxInput = headers.findIndex(h => h.toLowerCase() === 'input');
+      const idxChoice = headers.findIndex(h => h.toLowerCase() === 'choice');
+      
+      const dataType = row[idxData] || 'none';
+      const inputType = row[idxInput] || 'dropDownButton';
+      const choice = row[idxChoice] || 'Option';
+      
+      console.log('Campaign data:', {dataType, inputType, choice});
+      
+      if (dataType === 'json') {
+        setupJsonDataFlow(inputType, choice, row);
+      } else if (dataType === 'options') {
+        setupOptionsDataFlow(inputType, choice, row);
+      } else {
+        // data = none
+        loadButton.classList.remove('hidden');
+        loadButton.textContent = 'Load mp4 & overlay';
+      }
+    });
+
+    async function setupJsonDataFlow(inputType, choice, row) {
+      const idxId = headers.findIndex(h => h.toLowerCase() === 'id');
+      const id = row[idxId];
+      const jsonUrl = `https://static.originmedia.tv/website/internal/data-${id}.json`;
+      
+      try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error(`Failed to fetch ${jsonUrl}`);
+        
+        currentJsonData = await response.json();
+        console.log('Loaded JSON data:', currentJsonData);
+        
+        if (inputType === 'dropDownButton') {
+          setupDropdownInput(choice);
+        } else if (inputType === 'textEntry') {
+          setupTextInput(choice);
+        } else if (inputType === 'randomButton') {
+          setupRandomInput(choice);
+        }
+        
+      } catch (error) {
+        console.error('Error loading JSON data:', error);
+        alert(`Error loading campaign data: ${error.message}`);
+        resetCampaignSelection();
+      }
+    }
+
+    function setupOptionsDataFlow(inputType, choice, row) {
+      // Build data from Option columns
+      const optionData = {};
+      headers.forEach((header, i) => {
+        if (/^Option \d+/i.test(header) && row[i]) {
+          const value = row[i].split(' ')[0]; // Only up to first space
+          optionData[header] = value;
+        }
+      });
+      
+      currentJsonData = {campaigns: [optionData]};
+      console.log('Built options data:', currentJsonData);
+      
+      if (inputType === 'dropDownButton') {
+        setupOptionsDropdown(choice, row);
+      } else if (inputType === 'randomButton') {
+        setupRandomInput(choice);
+      }
+      // textEntry doesn't make sense with options data
+    }
+
+    function setupDropdownInput(choice) {
+      dynamicDropdown.classList.remove('hidden');
+      dynamicDropdown.innerHTML = `<option value="">Select ${choice}</option>`;
+      
+      currentJsonData.campaigns.forEach((campaign, index) => {
+        const label = `${campaign.demoLabel} - ${campaign.labelDescription}`;
+        dynamicDropdown.innerHTML += `<option value="${index}">${label}</option>`;
+      });
+      
+      dynamicDropdown.addEventListener('change', function() {
+        if (this.value !== '') {
+          const selectedCampaign = currentJsonData.campaigns[parseInt(this.value)];
+          loadExperience(selectedCampaign);
+        }
+      });
+    }
+
+    function setupOptionsDropdown(choice, row) {
+      dynamicDropdown.classList.remove('hidden');
+      dynamicDropdown.innerHTML = `<option value="">Select ${choice}</option>`;
+      
+      headers.forEach((header, i) => {
+        if (/^Option \d+/i.test(header) && row[i]) {
+          const display = row[i].replace(/ *\([^)]*\)/, '');
+          dynamicDropdown.innerHTML += `<option value="${header}">${display}</option>`;
+        }
+      });
+      
+      dynamicDropdown.addEventListener('change', function() {
+        if (this.value !== '') {
+          const headerName = this.value;
+          const value = currentCampaignData[headers.findIndex(h => h === headerName)].split(' ')[0];
+          const campaignData = {[choice]: value};
+          loadExperience(campaignData);
+        }
+      });
+    }
+
+    function setupTextInput(choice) {
+      textEntry.classList.remove('hidden');
+      enterButton.classList.remove('hidden');
+      textEntry.placeholder = `Enter a ${choice}`;
+      
+      function handleTextEntry() {
+        const enteredValue = textEntry.value.trim();
+        const matchingCampaign = currentJsonData.campaigns.find(c => 
+          c.demoLabel === enteredValue
+        );
+        
+        if (matchingCampaign) {
+          loadExperience(matchingCampaign);
+        } else {
+          alert(`No matching ${choice} found for: ${enteredValue}`);
+        }
+      }
+      
+      enterButton.addEventListener('click', handleTextEntry);
+      textEntry.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleTextEntry();
+        }
+      });
+    }
+
+    function setupRandomInput(choice) {
+      randomButton.classList.remove('hidden');
+      randomButton.textContent = `Random ${choice}`;
+      
+      randomButton.addEventListener('click', function() {
+        const randomIndex = Math.floor(Math.random() * currentJsonData.campaigns.length);
+        const randomCampaign = currentJsonData.campaigns[randomIndex];
+        loadExperience(randomCampaign);
+      });
+    }
+
+    function loadExperience(campaignData = null) {
+      const idxId = headers.findIndex(h => h.toLowerCase() === 'id');
+      const id = currentCampaignData[idxId];
+      
+      if (!id) {
+        console.error('No ID found for this campaign');
+        alert('Error: No ID found for this campaign');
+        return;
+      }
+      
+      // Stop any existing video
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      
+      const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
+      const cacheBuster = `_cb=${Date.now()}`;
+      const overlayUrl = `overlay-${id}.html?${cacheBuster}`;
+      
+      console.log('Loading video:', videoUrl);
+      console.log('Loading overlay:', overlayUrl);
+      console.log('Campaign data to pass:', campaignData);
+      
+      // Load video
+      videoSource.src = videoUrl;
+      videoEl.load();
+      videoEl.play();
+      
+      // Load overlay
+      iframeEl.src = overlayUrl;
+      
+      // Send campaign data via postMessage when overlay is ready
+      if (campaignData) {
+        const sendData = () => {
+          if (iframeEl.contentWindow) {
+            iframeEl.contentWindow.postMessage({
+              type: 'campaignData',
+              ...campaignData
+            }, '*');
+            console.log('Sent campaign data via postMessage:', campaignData);
+          }
+        };
+        
+        // Send data after a short delay to ensure overlay is ready
+        setTimeout(sendData, 500);
+      }
+    }
+
+    // Handle data=none case
+    loadButton.addEventListener('click', () => loadExperience());
+  </script>
+</body>
+</html>
