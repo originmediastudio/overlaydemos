@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <title>Overlay Animation</title>
+  
+  <!-- Preload fonts for immediate availability -->
+  <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro-Bold.woff2" as="font" type="font/woff2" crossorigin>
+  
   <style>
     /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
     @font-face {
@@ -86,7 +91,10 @@
 
   <script>
     (function() {
-      const jsonUrl = 'https://static.originmedia.tv/website/internal/campaign-data.json';
+      // CONFIGURATION - Set framerate here
+      const fps = 24; // Change this to 30 for 30fps videos, etc.
+      
+      const jsonUrl = 'https://script.google.com/macros/s/AKfycbx-aX3pCZJQHoT8TdqvBZNgoof-l-BTL4yvanfStQuayFJcVA0A88iBMxKw9KnfPbJg/exec';
       const startFrame1 = 76;
       const startFrame2 = 86;
       const letterFrames = 16;
@@ -107,11 +115,12 @@
           parent.postMessage('overlayReady', '*');
         }
         if (e.data && e.data.type === 'init') {
-          const { currentTime, fps } = e.data;
+          const { currentTime } = e.data; // No longer need fps from parent
           handshakeTime = performance.now();
           handshakeVideoTime = currentTime;
 
           console.log('Overlay init - videoTime:', currentTime);
+          console.log('Using overlay framerate:', fps);
 
           fetch(jsonUrl)
             .then(r => r.json())
@@ -119,7 +128,7 @@
               const now = performance.now();
               const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
 
-              console.log('JSON fetch complete - videoTime now:', videoTime);
+              console.log('Google Apps Script JSON fetch complete - videoTime now:', videoTime);
               console.log('Fetch took:', now - handshakeTime, 'ms');
 
               // Find campaign based on dma param or use random
@@ -187,7 +196,7 @@
               wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
             })
             .catch(error => {
-              console.error('Failed to fetch campaign data:', error);
+              console.error('Failed to fetch campaign data from Google Apps Script:', error);
               // Fallback to hardcoded text
               const t1 = "VACATIONLAND";
               const t2 = "The way life should be";
