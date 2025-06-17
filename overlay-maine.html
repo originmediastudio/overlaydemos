@@ -94,7 +94,6 @@
       // CONFIGURATION - Set framerate here
       const fps = 24; // Change this to 30 for 30fps videos, etc.
       
-      const jsonUrl = 'https://script.google.com/macros/s/AKfycbx-aX3pCZJQHoT8TdqvBZNgoof-l-BTL4yvanfStQuayFJcVA0A88iBMxKw9KnfPbJg/exec';
       const startFrame1 = 76;
       const startFrame2 = 86;
       const letterFrames = 16;
@@ -104,146 +103,103 @@
 
       let handshakeTime = 0;
       let handshakeVideoTime = 0;
-
-      // Helper to get URL param
-      function getParam(name) {
-        return new URLSearchParams(window.location.search).get(name);
-      }
+      let campaignDataReceived = false;
+      let receivedCampaignData = null;
 
       window.addEventListener('message', function handler(e) {
         if (e.data === 'parentLoaded') {
           parent.postMessage('overlayReady', '*');
         }
+        
         if (e.data && e.data.type === 'init') {
-          const { currentTime } = e.data; // No longer need fps from parent
+          const { currentTime } = e.data;
           handshakeTime = performance.now();
           handshakeVideoTime = currentTime;
 
           console.log('Overlay init - videoTime:', currentTime);
           console.log('Using overlay framerate:', fps);
-
-          fetch(jsonUrl)
-            .then(r => r.json())
-            .then(data => {
-              const now = performance.now();
-              const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
-
-              console.log('Google Apps Script JSON fetch complete - videoTime now:', videoTime);
-              console.log('Fetch took:', now - handshakeTime, 'ms');
-
-              // Find campaign based on dma param or use random
-              const dmaVal = getParam('dma');
-              let chosenCampaign;
-              
-              if (dmaVal) {
-                chosenCampaign = data.campaigns.find(c => c.dma === dmaVal);
-              }
-              if (!chosenCampaign) {
-                chosenCampaign = data.campaigns[Math.floor(Math.random() * data.campaigns.length)];
-              }
-
-              console.log('Chosen campaign:', chosenCampaign);
-
-              const t1 = chosenCampaign.text1;
-              const t2 = chosenCampaign.text2;
-
-              // populate containers
-              const c1 = document.getElementById('text');
-              const c2 = document.getElementById('text2');
-
-              // durations
-              const letterDuration = letterFrames / fps;
-              const wordDuration = wordFrames / fps;
-              const fadeStart = fadeStartFrame / fps;
-              const fadeDuration = fadeFrames / fps;
-
-              console.log('Animation timings:', {
-                startFrame1: startFrame1 / fps,
-                fadeStart: fadeStart,
-                videoTime: videoTime,
-                delay: (startFrame1 / fps) - videoTime
-              });
-
-              // animate first line per character
-              c1.textContent = '';
-              Array.from(t1).forEach((char, i) => {
-                const span = document.createElement('span');
-                span.className = 'char';
-                span.textContent = char;
-                const delay = (startFrame1 + i) / fps - videoTime;
-                span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
-                span.style.animationDelay = `${Math.max(delay, 0)}s`;
-                c1.appendChild(span);
-              });
-
-              // animate second line per word
-              c2.textContent = '';
-              t2.split(' ').forEach((word, i, arr) => {
-                const span = document.createElement('span');
-                span.className = 'word';
-                span.textContent = word;
-                const delay = (startFrame2 + i) / fps - videoTime;
-                span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
-                span.style.animationDelay = `${Math.max(delay, 0)}s`;
-                c2.appendChild(span);
-                if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
-              });
-
-              // fade out wrapper
-              const wrapper = document.getElementById('textWrapper');
-              const fadeDelay = fadeStart - videoTime;
-              wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
-              wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
-            })
-            .catch(error => {
-              console.error('Failed to fetch campaign data from Google Apps Script:', error);
-              // Fallback to hardcoded text
-              const t1 = "VACATIONLAND";
-              const t2 = "The way life should be";
-              
-              const now = performance.now();
-              const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
-              
-              // Same animation setup as above with fallback text
-              const c1 = document.getElementById('text');
-              const c2 = document.getElementById('text2');
-              const letterDuration = letterFrames / fps;
-              const wordDuration = wordFrames / fps;
-              const fadeStart = fadeStartFrame / fps;
-              const fadeDuration = fadeFrames / fps;
-              
-              c1.textContent = '';
-              Array.from(t1).forEach((char, i) => {
-                const span = document.createElement('span');
-                span.className = 'char';
-                span.textContent = char;
-                const delay = (startFrame1 + i) / fps - videoTime;
-                span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
-                span.style.animationDelay = `${Math.max(delay, 0)}s`;
-                c1.appendChild(span);
-              });
-              
-              c2.textContent = '';
-              t2.split(' ').forEach((word, i, arr) => {
-                const span = document.createElement('span');
-                span.className = 'word';
-                span.textContent = word;
-                const delay = (startFrame2 + i) / fps - videoTime;
-                span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
-                span.style.animationDelay = `${Math.max(delay, 0)}s`;
-                c2.appendChild(span);
-                if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
-              });
-              
-              const wrapper = document.getElementById('textWrapper');
-              const fadeDelay = fadeStart - videoTime;
-              wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
-              wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
-            });
-
-          window.removeEventListener('message', handler);
+          
+          // If we already have campaign data, proceed immediately
+          if (campaignDataReceived) {
+            setupAnimations();
+          }
+          // Otherwise wait for campaign data
+        }
+        
+        if (e.data && e.data.type === 'campaignData') {
+          console.log('Received campaign data via postMessage:', e.data);
+          receivedCampaignData = e.data;
+          campaignDataReceived = true;
+          
+          // If handshake already happened, proceed immediately
+          if (handshakeTime > 0) {
+            setupAnimations();
+          }
+          // Otherwise wait for init message
         }
       });
+
+      function setupAnimations() {
+        const now = performance.now();
+        const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
+
+        console.log('Setting up animations - videoTime now:', videoTime);
+        console.log('Data received took:', now - handshakeTime, 'ms after init');
+
+        // Extract text from campaign data
+        const t1 = receivedCampaignData.text1 || "Default Text 1";
+        const t2 = receivedCampaignData.text2 || "Default Text 2";
+
+        console.log('Using text:', {t1, t2});
+
+        // populate containers
+        const c1 = document.getElementById('text');
+        const c2 = document.getElementById('text2');
+
+        // durations
+        const letterDuration = letterFrames / fps;
+        const wordDuration = wordFrames / fps;
+        const fadeStart = fadeStartFrame / fps;
+        const fadeDuration = fadeFrames / fps;
+
+        console.log('Animation timings:', {
+          startFrame1: startFrame1 / fps,
+          fadeStart: fadeStart,
+          videoTime: videoTime,
+          delay: (startFrame1 / fps) - videoTime
+        });
+
+        // animate first line per character
+        c1.textContent = '';
+        Array.from(t1).forEach((char, i) => {
+          const span = document.createElement('span');
+          span.className = 'char';
+          span.textContent = char;
+          const delay = (startFrame1 + i) / fps - videoTime;
+          span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          c1.appendChild(span);
+        });
+
+        // animate second line per word
+        c2.textContent = '';
+        t2.split(' ').forEach((word, i, arr) => {
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.textContent = word;
+          const delay = (startFrame2 + i) / fps - videoTime;
+          span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          c2.appendChild(span);
+          if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
+        });
+
+        // fade out wrapper
+        const wrapper = document.getElementById('textWrapper');
+        const fadeDelay = fadeStart - videoTime;
+        wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
+        wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
+      }
     })();
   </script>
 </body>
