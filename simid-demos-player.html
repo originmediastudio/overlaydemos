@@ -11,6 +11,16 @@
       background: #000;
       color: #fff;
     }
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+    }
+    .logo img {
+      height: 30px;
+      width: auto;
+    }
     .wrapper {
       padding: 20px;
     }
@@ -58,7 +68,7 @@
       color: #fff;
       border-radius: 4px;
       padding: 8px;
-      max-height: 60px;
+      max-height: 20px;
       overflow-y: auto;
       overflow-x: hidden;
       white-space: pre-wrap;
@@ -127,7 +137,7 @@
       cursor: pointer;
       opacity: 0.8;
       transition: opacity 0.2s;
-      margin: 10px auto 0;
+      margin: 15px auto 0;
       display: block;
     }
     #toggleAudioButton:hover {
@@ -142,10 +152,15 @@
   </style>
 </head>
 <body>
+  <a href="https://originmedia.tv" class="logo" target="_blank">
+    <img src="logo-origin.png" alt="Origin Media">
+  </a>
   <div class="wrapper">
     <h1>ORIGIN SIMID DEMO PLAYER</h1>
     <div id="specialInfo">
-This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.     </div>
+This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.
+
+    </div>
     <div class="controls">
       <div class="controls-left">
         <select id="campaignSelect">
@@ -326,7 +341,7 @@ This site simulates a CTV player with SIMID protocol enabled. It demonstrates ho
         
         // Use default text if no special info provided
         if (specialText.trim() === '') {
-          specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, customized by data. Select a demonstration campaign to reveal additional options that would ordinarily be determined by the ad server, based on the winning bid (such as device geo). This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.';
+          specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.';
         } else {
           specialInfoDiv.textContent = specialText;
         }
