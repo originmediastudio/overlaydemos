@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>556 Origin SIMID Demo Player</title>
+  <title>608 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -98,6 +98,22 @@
       line-height: 1.3;
       text-align: left;
       overflow-wrap: break-word;
+    }
+    .path-table {
+      display: table;
+      width: 100%;
+    }
+    .path-row {
+      display: table-row;
+    }
+    .path-label {
+      display: table-cell;
+      padding-right: 10px;
+      white-space: nowrap;
+    }
+    .path-value {
+      display: table-cell;
+      text-align: left;
     }
     .path-link {
       color: #999;
@@ -307,6 +323,17 @@ Loading...
     </div>
   </div>
   
+  <!-- Modal for dataset source -->
+  <div id="datasetModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Bid Response Dataset</h3>
+        <button class="modal-close" onclick="closeDatasetModal()">Close</button>
+      </div>
+      <div class="modal-code" id="datasetSourceCode"></div>
+    </div>
+  </div>
+  
   <div class="code-section">
     <div class="code-header hidden" id="codeHeader">Data provided to the overlay HTML</div>
     <div id="codeDisplay" class="hidden"></div>
@@ -337,6 +364,8 @@ Loading...
     const pathDisplay = document.getElementById('pathDisplay');
     const overlayModal = document.getElementById('overlayModal');
     const overlaySourceCode = document.getElementById('overlaySourceCode');
+    const datasetModal = document.getElementById('datasetModal');
+    const datasetSourceCode = document.getElementById('datasetSourceCode');
     const toggleAudioButton = document.getElementById('toggleAudioButton');
 
     // Set up pause debugging
@@ -403,6 +432,10 @@ Loading...
       overlayModal.style.display = 'none';
     }
     
+    function closeDatasetModal() {
+      datasetModal.style.display = 'none';
+    }
+    
     function showOverlayModal(overlayUrl) {
       fetch(overlayUrl)
         .then(response => response.text())
@@ -416,6 +449,19 @@ Loading...
         });
     }
     
+    function showDatasetModal(datasetUrl) {
+      fetch(datasetUrl)
+        .then(response => response.json())
+        .then(data => {
+          datasetSourceCode.textContent = JSON.stringify(data, null, 2);
+          datasetModal.style.display = 'block';
+        })
+        .catch(error => {
+          datasetSourceCode.textContent = 'Error loading dataset: ' + error.message;
+          datasetModal.style.display = 'block';
+        });
+    }
+    
     function playVideoOnly(videoUrl) {
       videoEl.pause();
       videoEl.currentTime = 0;
@@ -425,16 +471,24 @@ Loading...
       videoEl.play();
     }
     
-    // Close modal when clicking outside
+    // Close modals when clicking outside
     overlayModal.addEventListener('click', function(e) {
       if (e.target === overlayModal) {
         closeOverlayModal();
       }
     });
     
+    datasetModal.addEventListener('click', function(e) {
+      if (e.target === datasetModal) {
+        closeDatasetModal();
+      }
+    });
+    
     // Make functions globally accessible
     window.closeOverlayModal = closeOverlayModal;
+    window.closeDatasetModal = closeDatasetModal;
     window.showOverlayModal = showOverlayModal;
+    window.showDatasetModal = showDatasetModal;
     window.playVideoOnly = playVideoOnly;
 
     // Fetch TSV data
@@ -743,8 +797,24 @@ Loading...
       const displayVideoUrl = videoUrl;
       const displayOverlayUrl = overlayUrl.split('?')[0]; // Remove cachebuster for display
       const fullOverlayUrl = overlayUrl; // Keep full URL for fetching
+      const datasetUrl = currentCampaignData[headers.findIndex(h => h.toLowerCase() === 'datapath')];
       
-      pathDisplay.innerHTML = `Base mp4 path: <span class="path-link" onclick="playVideoOnly('${videoUrl}')">${displayVideoUrl}</span><br>Overlay path: <span class="path-link" onclick="showOverlayModal('${fullOverlayUrl}')">${displayOverlayUrl}</span>`;
+      pathDisplay.innerHTML = `
+        <div class="path-table">
+          <div class="path-row">
+            <div class="path-label">Bid response dataset:</div>
+            <div class="path-value"><span class="path-link" onclick="showDatasetModal('${datasetUrl}')">${datasetUrl}</span></div>
+          </div>
+          <div class="path-row">
+            <div class="path-label">Base mp4 path:</div>
+            <div class="path-value"><span class="path-link" onclick="playVideoOnly('${videoUrl}')">${displayVideoUrl}</span></div>
+          </div>
+          <div class="path-row">
+            <div class="path-label">Overlay path:</div>
+            <div class="path-value"><span class="path-link" onclick="showOverlayModal('${fullOverlayUrl}')">${displayOverlayUrl}</span></div>
+          </div>
+        </div>
+      `;
       pathDisplay.classList.remove('hidden');
       
       // Send campaign data via postMessage when overlay is ready
