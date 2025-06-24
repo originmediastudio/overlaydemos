@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>510 Origin SIMID Demo Player</title>
+  <title>518 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -430,9 +430,23 @@ Loading...
     });
 
     async function setupJsonDataFlow(inputType, choice, row) {
-      const idxId = headers.findIndex(h => h.toLowerCase() === 'id');
-      const id = row[idxId];
-      const jsonUrl = `https://static.originmedia.tv/website/internal/data-${id}.json`;
+      const idxDataPath = headers.findIndex(h => h.toLowerCase() === 'datapath');
+      
+      if (idxDataPath < 0) {
+        console.error('dataPath column not found in TSV');
+        alert('Error: dataPath column not found in configuration');
+        resetCampaignSelection();
+        return;
+      }
+      
+      const jsonUrl = row[idxDataPath];
+      
+      if (!jsonUrl) {
+        console.error('No dataPath value found for this campaign');
+        alert('Error: No data path specified for this campaign');
+        resetCampaignSelection();
+        return;
+      }
       
       try {
         const response = await fetch(jsonUrl);
