@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>505 Origin SIMID Demo Player</title>
+  <title>510 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -314,10 +314,10 @@ Loading...
         console.log('TSV Headers:', headers);
         console.log('Number of data rows:', dataRows.length);
         
-        // Load introduction text from row 2 (index 1)
+        // Load introduction text from row 2 (index 0 since dataRows excludes header)
         const idxIntroduction = headers.findIndex(h => h.toLowerCase() === 'introduction');
-        if (idxIntroduction >= 0 && dataRows.length > 1) {
-          const introductionText = dataRows[1][idxIntroduction] || 'No introduction text available.';
+        if (idxIntroduction >= 0 && dataRows.length > 0) {
+          const introductionText = dataRows[0][idxIntroduction] || 'No introduction text available.';
           introContent.textContent = introductionText;
         } else {
           introContent.textContent = 'No introduction text found in data.';
