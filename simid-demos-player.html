@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>547 Origin SIMID Demo Player</title>
+  <title>556 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -98,6 +98,69 @@
       line-height: 1.3;
       text-align: left;
       overflow-wrap: break-word;
+    }
+    .path-link {
+      color: #999;
+      text-decoration: none;
+      cursor: default;
+      transition: color 0.2s;
+    }
+    .path-link:hover {
+      color: #fff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+    .modal-content {
+      background-color: #222;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 1000px;
+      max-height: 80%;
+      overflow-y: auto;
+      color: #fff;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+    .modal-close {
+      background: #666;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 5px 15px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .modal-close:hover {
+      background: #777;
+    }
+    .modal-code {
+      font-family: monospace;
+      font-size: 11px;
+      background: #111;
+      color: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      line-height: 1.4;
     }
     select, input[type=text], button {
       font-size: 14px;
@@ -233,6 +296,17 @@ Loading...
   </div>
   <button id="toggleAudioButton" class="hidden">Toggle Audio</button>
   
+  <!-- Modal for overlay source code -->
+  <div id="overlayModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Overlay HTML Source Code</h3>
+        <button class="modal-close" onclick="closeOverlayModal()">Close</button>
+      </div>
+      <div class="modal-code" id="overlaySourceCode"></div>
+    </div>
+  </div>
+  
   <div class="code-section">
     <div class="code-header hidden" id="codeHeader">Data provided to the overlay HTML</div>
     <div id="codeDisplay" class="hidden"></div>
@@ -261,6 +335,8 @@ Loading...
     const codeDisplay = document.getElementById('codeDisplay');
     const codeHeader = document.getElementById('codeHeader');
     const pathDisplay = document.getElementById('pathDisplay');
+    const overlayModal = document.getElementById('overlayModal');
+    const overlaySourceCode = document.getElementById('overlaySourceCode');
     const toggleAudioButton = document.getElementById('toggleAudioButton');
 
     // Set up pause debugging
@@ -321,6 +397,45 @@ Loading...
         introToggle.textContent = 'Show';
       }
     });
+
+    // Modal functions
+    function closeOverlayModal() {
+      overlayModal.style.display = 'none';
+    }
+    
+    function showOverlayModal(overlayUrl) {
+      fetch(overlayUrl)
+        .then(response => response.text())
+        .then(html => {
+          overlaySourceCode.textContent = html;
+          overlayModal.style.display = 'block';
+        })
+        .catch(error => {
+          overlaySourceCode.textContent = 'Error loading overlay source: ' + error.message;
+          overlayModal.style.display = 'block';
+        });
+    }
+    
+    function playVideoOnly(videoUrl) {
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      videoSource.src = videoUrl;
+      iframeEl.src = ''; // Clear overlay
+      videoEl.load();
+      videoEl.play();
+    }
+    
+    // Close modal when clicking outside
+    overlayModal.addEventListener('click', function(e) {
+      if (e.target === overlayModal) {
+        closeOverlayModal();
+      }
+    });
+    
+    // Make functions globally accessible
+    window.closeOverlayModal = closeOverlayModal;
+    window.showOverlayModal = showOverlayModal;
+    window.playVideoOnly = playVideoOnly;
 
     // Fetch TSV data
     fetch(tsvUrl)
@@ -624,8 +739,12 @@ Loading...
       // Show toggle audio button after first video loads
       toggleAudioButton.classList.remove('hidden');
       
-      // Show path display in controls-right area
-      pathDisplay.innerHTML = `Base mp4 path: ${videoUrl}<br>Overlay HTML path: ${overlayUrl}`;
+      // Show path display in controls-right area with clickable links
+      const displayVideoUrl = videoUrl;
+      const displayOverlayUrl = overlayUrl.split('?')[0]; // Remove cachebuster for display
+      const fullOverlayUrl = overlayUrl; // Keep full URL for fetching
+      
+      pathDisplay.innerHTML = `Base mp4 path: <span class="path-link" onclick="playVideoOnly('${videoUrl}')">${displayVideoUrl}</span><br>Overlay path: <span class="path-link" onclick="showOverlayModal('${fullOverlayUrl}')">${displayOverlayUrl}</span>`;
       pathDisplay.classList.remove('hidden');
       
       // Send campaign data via postMessage when overlay is ready
