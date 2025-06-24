@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>1028 Origin SIMID Demo Player</title>
+  <title>1038 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -796,6 +796,7 @@ Loading...
 
     function loadExperience(campaignData = null) {
       const idxId = headers.findIndex(h => h.toLowerCase() === 'id');
+      const idxMp4 = headers.findIndex(h => h.toLowerCase() === 'mp4');
       const id = currentCampaignData[idxId];
       
       if (!id) {
@@ -808,7 +809,19 @@ Loading...
       videoEl.pause();
       videoEl.currentTime = 0;
       
-      const videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
+      // Determine video URL - prioritize JSON data, then TSV, then fallback to constructed URL
+      let videoUrl;
+      if (campaignData && campaignData.mp4) {
+        videoUrl = campaignData.mp4;
+        console.log('Using mp4 path from JSON data:', videoUrl);
+      } else if (idxMp4 >= 0 && currentCampaignData[idxMp4]) {
+        videoUrl = currentCampaignData[idxMp4];
+        console.log('Using mp4 path from TSV:', videoUrl);
+      } else {
+        videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
+        console.log('Using constructed mp4 path:', videoUrl);
+      }
+      
       const cacheBuster = `_cb=${Date.now()}`;
       const overlayUrl = `overlay-${id}.html?${cacheBuster}`;
       
