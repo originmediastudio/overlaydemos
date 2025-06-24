@@ -10,25 +10,21 @@
   
   <style>
     /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
+    @font-face {
+      font-family: 'TT Ramillas';
+      src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-TTRamillas-Light.woff2') format('woff2');
+      font-weight: 300;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Macys Sans';
+      src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-MacysSans-Bold.woff2') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
 
-      @font-face {
-    font-family: 'TT Ramillas';
-    src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-TTRamillas-Light.woff2') format('woff2');
-    font-weight: 300;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: 'Macys Sans';
-        src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-MacysSans-Bold.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-    font-display: swap;
-}
-
-
-      
     /* Reset and transparent background */
     html, body {
       margin: 0;
@@ -55,24 +51,23 @@
       left: 41.5%;
       color: #fff;
       text-align: center;
-      white-space: pre-wrap;
     }
+    /* Prevent wrapping and enable baseline anchoring */
     #text1 {
-      bottom: 76%;
+      bottom: 75%;
       font-size: 5.5vw;
-     /* width: 22vw; */
+      white-space: nowrap;
       font-family: 'TT Ramillas', serif;
-    letter-spacing: -0.05em;
-
+      letter-spacing: -0.05em;
+      transform-origin: left bottom;
     }
     #text2 {
-      bottom: 71%;
+      bottom: 70%;
       font-size: 2.3vw;
-     /* width: 22vw;*/
+      white-space: pre-wrap;
       line-height: 1.2;
       font-family: 'Macys Sans', sans-serif;
       text-transform: uppercase;
-
     }
 
     @keyframes slideFade {
@@ -98,8 +93,7 @@
   <script>
     (function() {
       // CONFIGURATION - Set framerate here
-      const fps = 24; // Change this to 30 for 30fps videos, etc.
-      
+      const fps = 24;
       const startFrame1 = 348;
       const startFrame2 = 358;
       const letterFrames = 18;
@@ -116,32 +110,15 @@
         if (e.data === 'parentLoaded') {
           parent.postMessage('overlayReady', '*');
         }
-        
         if (e.data && e.data.type === 'init') {
-          const { currentTime } = e.data;
           handshakeTime = performance.now();
-          handshakeVideoTime = currentTime;
-
-          console.log('Overlay init - videoTime:', currentTime);
-          console.log('Using overlay framerate:', fps);
-          
-          // If we already have campaign data, proceed immediately
-          if (campaignDataReceived) {
-            setupAnimations();
-          }
-          // Otherwise wait for campaign data
+          handshakeVideoTime = e.data.currentTime;
+          if (campaignDataReceived) setupAnimations();
         }
-        
         if (e.data && e.data.type === 'campaignData') {
-          console.log('Received campaign data via postMessage:', e.data);
           receivedCampaignData = e.data;
           campaignDataReceived = true;
-          
-          // If handshake already happened, proceed immediately
-          if (handshakeTime > 0) {
-            setupAnimations();
-          }
-          // Otherwise wait for init message
+          if (handshakeTime > 0) setupAnimations();
         }
       });
 
@@ -149,61 +126,50 @@
         const now = performance.now();
         const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
 
-        console.log('Setting up animations - videoTime now:', videoTime);
-        console.log('Data received took:', now - handshakeTime, 'ms after init');
-
         // Extract text from campaign data
         const t1 = receivedCampaignData.text1 || "Default Text 1";
         const t2 = receivedCampaignData.text2 || "Default Text 2";
 
-        console.log('Using text:', {t1, t2});
-
-        // populate containers
         const c1 = document.getElementById('text1');
         const c2 = document.getElementById('text2');
 
-        // durations
-        const letterDuration = letterFrames / fps;
-        const wordDuration = wordFrames / fps;
-        const fadeStart = fadeStartFrame / fps;
-        const fadeDuration = fadeFrames / fps;
-
-        console.log('Animation timings:', {
-          startFrame1: startFrame1 / fps,
-          fadeStart: fadeStart,
-          videoTime: videoTime,
-          delay: (startFrame1 / fps) - videoTime
-        });
-
-        // animate first line per character
+        // Clear and populate first line per character
         c1.textContent = '';
         Array.from(t1).forEach((char, i) => {
           const span = document.createElement('span');
           span.className = 'char';
           span.textContent = char;
-          const delay = (startFrame1 + i) / fps - videoTime;
-          span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          span.style.animation = `slideFade ${letterFrames / fps}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max((startFrame1 + i) / fps - videoTime, 0)}s`;
           c1.appendChild(span);
         });
 
-        // animate second line per word
+        // Dynamic resize: shrink if wider than 55% of wrapper
+        const wrapper = document.getElementById('textWrapper');
+        const maxWidth = wrapper.clientWidth * 0.55;
+        const actualWidth = c1.offsetWidth;
+        if (actualWidth > maxWidth) {
+          const scale = maxWidth / actualWidth;
+          c1.style.transform = `scale(${scale})`;
+        } else {
+          c1.style.transform = `scale(1)`;
+        }
+
+        // Populate second line per word
         c2.textContent = '';
         t2.split(' ').forEach((word, i, arr) => {
           const span = document.createElement('span');
           span.className = 'word';
           span.textContent = word;
-          const delay = (startFrame2 + i) / fps - videoTime;
-          span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max(delay, 0)}s`;
+          span.style.animation = `slideFade ${wordFrames / fps}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max((startFrame2 + i) / fps - videoTime, 0)}s`;
           c2.appendChild(span);
           if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
         });
 
-        // fade out wrapper
-        const wrapper = document.getElementById('textWrapper');
-        const fadeDelay = fadeStart - videoTime;
-        wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
+        // Fade out wrapper
+        const fadeDelay = (fadeStartFrame / fps) - videoTime;
+        wrapper.style.animation = `fadeOut ${fadeFrames / fps}s ease-out forwards`;
         wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
       }
     })();
