@@ -98,8 +98,9 @@
           mask.style.width = `${maskW}vw`;
           mask.style.height = `${maskH}vh`;
           const halfW=maskW/2, halfH=maskH/2;
-          mask.style.left = `calc(54% - ${halfW}vw)`;
-          mask.style.bottom = `calc(37% - ${halfH}vh)`;
+          // shifted left 1vw and down 3vh
+          mask.style.left = `calc(54% - ${halfW}vw - 1vw)`;
+          mask.style.bottom = `calc(37% - ${halfH}vh - 3vh)`;
           mask.style.borderRadius = `${(70/1080)*100}vh`;
 
           const img = document.createElement('img');
