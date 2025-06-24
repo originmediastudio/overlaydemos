@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>1127 Origin SIMID Demo Player</title>
+  <title>1158 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -612,23 +612,6 @@ Loading...
       
       currentCampaignData = row;
       
-      // Show special info
-      const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
-      console.log('Special info index:', idxSpecial);
-      
-      if (specialInfoDiv) {
-        const specialText = row[idxSpecial] || '';
-        console.log('Special text:', specialText);
-        
-        // Use default text if no special info provided
-        if (specialText.trim() === '') {
-          specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.';
-        } else {
-          specialInfoDiv.textContent = specialText;
-        }
-      } else {
-        console.error('specialInfoDiv element not found!');
-      }
       
       // Get data and input types
       const idxData = headers.findIndex(h => h.toLowerCase() === 'data');
