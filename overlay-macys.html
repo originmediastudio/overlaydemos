@@ -9,7 +9,7 @@
   <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-MacysSans-Bold.woff2" as="font" type="font/woff2" crossorigin>
   
   <style>
-    /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
+    /* Load subsetted fonts from GitHub */
     @font-face {
       font-family: 'TT Ramillas';
       src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-TTRamillas-Light.woff2') format('woff2');
@@ -35,7 +35,7 @@
       overflow: hidden;
     }
 
-    /* Wrapper for both text lines */
+    /* Wrapper for all overlay elements */
     #textWrapper {
       position: absolute;
       top: 0;
@@ -43,9 +43,6 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      background-image: url(macys-base.png);
-      background-repeat: no-repeat;
-      background-size: contain;
     }
 
     /* Shared text styles */
@@ -55,7 +52,7 @@
       color: #fff;
       text-align: center;
     }
-    /* Prevent wrapping and enable baseline anchoring */
+    /* First line: no wrap, baseline anchor */
     #text1 {
       bottom: 75%;
       font-size: 5.5vw;
@@ -65,6 +62,7 @@
       transform-origin: left bottom;
       margin-left: -0.3vw;
     }
+    /* Second line wrap per word */
     #text2 {
       bottom: 69%;
       font-size: 2.3vw;
@@ -74,9 +72,20 @@
       text-transform: uppercase;
     }
 
+    /* Image mask styling (will be created dynamically) */
+    .image-mask {
+      position: absolute;
+      overflow: hidden;
+      opacity: 0;
+      transform-origin: center center;
+    }
+
     @keyframes slideFade {
       from { opacity: 0; transform: translateX(10px); }
       to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes appear {
+      to { opacity: 1; }
     }
     @keyframes fadeOut {
       from { opacity: 1; }
@@ -96,12 +105,12 @@
 
   <script>
     (function() {
-      // CONFIGURATION - Set framerate here
       const fps = 24;
       const startFrame1 = 350;
       const startFrame2 = 365;
       const letterFrames = 18;
       const wordFrames = 28;
+      const imageFrame = 391;
       const fadeStartFrame = 710;
       const fadeFrames = 8;
 
@@ -110,7 +119,7 @@
       let campaignDataReceived = false;
       let receivedCampaignData = null;
 
-      window.addEventListener('message', function handler(e) {
+      window.addEventListener('message', function(e) {
         if (e.data === 'parentLoaded') {
           parent.postMessage('overlayReady', '*');
         }
@@ -130,52 +139,67 @@
         const now = performance.now();
         const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
 
-        // Extract text from campaign data
-        const t1 = receivedCampaignData.text1 || "Default Text 1";
-        const t2 = receivedCampaignData.text2 || "Default Text 2";
+        const t1 = receivedCampaignData.text1 || "";
+        const t2 = receivedCampaignData.text2 || "";
 
         const c1 = document.getElementById('text1');
         const c2 = document.getElementById('text2');
-
-        // Clear and populate first line per character
         c1.textContent = '';
         Array.from(t1).forEach((char, i) => {
           const span = document.createElement('span');
           span.className = 'char';
-          // Use non-breaking space for readability
           span.textContent = char === ' ' ? '\u00A0' : char;
-          span.style.animation = `slideFade ${letterFrames / fps}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max((startFrame1 + i) / fps - videoTime, 0)}s`;
+          span.style.animation = `slideFade ${letterFrames/fps}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max((startFrame1+i)/fps - videoTime,0)}s`;
           c1.appendChild(span);
         });
-
-        // Dynamic resize: shrink if wider than 55% of wrapper
+        // auto-scale if too wide (>55%)
         const wrapper = document.getElementById('textWrapper');
-        const maxWidth = wrapper.clientWidth * 0.55;
-        const actualWidth = c1.offsetWidth;
-        if (actualWidth > maxWidth) {
-          const scale = maxWidth / actualWidth;
-          c1.style.transform = `scale(${scale})`;
-        } else {
-          c1.style.transform = `scale(1)`;
+        const maxW = wrapper.clientWidth * 0.55;
+        if (c1.offsetWidth > maxW) {
+          c1.style.transform = `scale(${maxW/c1.offsetWidth})`;
         }
 
-        // Populate second line per word
         c2.textContent = '';
-        t2.split(' ').forEach((word, i, arr) => {
+        t2.split(' ').forEach((word,i,arr)=>{
           const span = document.createElement('span');
           span.className = 'word';
           span.textContent = word;
-          span.style.animation = `slideFade ${wordFrames / fps}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max((startFrame2 + i) / fps - videoTime, 0)}s`;
+          span.style.animation = `slideFade ${wordFrames/fps}s ease-out forwards`;
+          span.style.animationDelay = `${Math.max((startFrame2+i)/fps - videoTime,0)}s`;
           c2.appendChild(span);
-          if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
+          if (i < arr.length-1) c2.appendChild(document.createTextNode(' '));
         });
 
-        // Fade out wrapper
-        const fadeDelay = (fadeStartFrame / fps) - videoTime;
-        wrapper.style.animation = `fadeOut ${fadeFrames / fps}s ease-out forwards`;
-        wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
+        // image insertion at specified frame
+        ['image01','image02','image03','image04'].forEach((key,idx)=>{
+          const name = receivedCampaignData[key];
+          if (!name) return;
+          const mask = document.createElement('div');
+          mask.className = 'image-mask';
+          // mask size relative to viewport
+          mask.style.width = `${(425/1920)*100}vw`;
+          mask.style.height = `${(590/1080)*100}vh`;
+          mask.style.borderRadius = `${(70/1920)*100}vw`;
+          // placeholder positions; adjust as needed
+          const positions = ['10%','35%','60%','85%'];
+          mask.style.left = positions[idx];
+          mask.style.bottom = '30%';
+          const img = document.createElement('img');
+          img.src = `images/${name}`;
+          img.style.width = `${(475/1920)*100}vw`;
+          img.style.height = 'auto';
+          mask.appendChild(img);
+          const delay = Math.max((imageFrame/fps) - videoTime,0);
+          mask.style.animation = `appear 0s step-end forwards`;
+          mask.style.animationDelay = `${delay}s`;
+          wrapper.appendChild(mask);
+        });
+
+        // fade out all at end
+        const fadeDelay = (fadeStartFrame/fps) - videoTime;
+        wrapper.style.animation = `fadeOut ${fadeFrames/fps}s ease-out forwards`;
+        wrapper.style.animationDelay = `${Math.max(fadeDelay,0)}s`;
       }
     })();
   </script>
