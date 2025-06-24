@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>608 Origin SIMID Demo Player</title>
+  <title>1028 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -334,6 +334,19 @@ Loading...
     </div>
   </div>
   
+  <!-- Modal for video player -->
+  <div id="videoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Base MP4 Video</h3>
+        <button class="modal-close" onclick="closeVideoModal()">Close</button>
+      </div>
+      <video id="modalVideo" controls autoplay style="width: 100%; max-height: 60vh; background: #000;">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+  
   <div class="code-section">
     <div class="code-header hidden" id="codeHeader">Data provided to the overlay HTML</div>
     <div id="codeDisplay" class="hidden"></div>
@@ -366,6 +379,8 @@ Loading...
     const overlaySourceCode = document.getElementById('overlaySourceCode');
     const datasetModal = document.getElementById('datasetModal');
     const datasetSourceCode = document.getElementById('datasetSourceCode');
+    const videoModal = document.getElementById('videoModal');
+    const modalVideo = document.getElementById('modalVideo');
     const toggleAudioButton = document.getElementById('toggleAudioButton');
 
     // Set up pause debugging
@@ -436,6 +451,12 @@ Loading...
       datasetModal.style.display = 'none';
     }
     
+    function closeVideoModal() {
+      modalVideo.pause();
+      modalVideo.src = '';
+      videoModal.style.display = 'none';
+    }
+    
     function showOverlayModal(overlayUrl) {
       fetch(overlayUrl)
         .then(response => response.text())
@@ -462,6 +483,11 @@ Loading...
         });
     }
     
+    function showVideoModal(videoUrl) {
+      modalVideo.src = videoUrl;
+      videoModal.style.display = 'block';
+    }
+    
     function playVideoOnly(videoUrl) {
       videoEl.pause();
       videoEl.currentTime = 0;
@@ -484,11 +510,19 @@ Loading...
       }
     });
     
+    videoModal.addEventListener('click', function(e) {
+      if (e.target === videoModal) {
+        closeVideoModal();
+      }
+    });
+    
     // Make functions globally accessible
     window.closeOverlayModal = closeOverlayModal;
     window.closeDatasetModal = closeDatasetModal;
+    window.closeVideoModal = closeVideoModal;
     window.showOverlayModal = showOverlayModal;
     window.showDatasetModal = showDatasetModal;
+    window.showVideoModal = showVideoModal;
     window.playVideoOnly = playVideoOnly;
 
     // Fetch TSV data
@@ -807,7 +841,7 @@ Loading...
           </div>
           <div class="path-row">
             <div class="path-label">Base mp4 path:</div>
-            <div class="path-value"><span class="path-link" onclick="playVideoOnly('${videoUrl}')">${displayVideoUrl}</span></div>
+            <div class="path-value"><span class="path-link" onclick="showVideoModal('${videoUrl}')">${displayVideoUrl}</span></div>
           </div>
           <div class="path-row">
             <div class="path-label">Overlay path:</div>
