@@ -1,206 +1,59 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Overlay Animation</title>
-  
-  <!-- Preload fonts for immediate availability -->
-  <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro-Bold.woff2" as="font" type="font/woff2" crossorigin>
-  
-  <style>
-    /* Load subsetted fonts from GitHub (WOFF2 only for smallest size) */
-    @font-face {
-      font-family: 'SegoePro';
-      src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro.woff2') format('woff2');
-      font-weight: normal;
-      font-style: normal;
-      font-display: swap;
-    }
-    @font-face {
-      font-family: 'SegoePro-Bold';
-      src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-SegoePro-Bold.woff2') format('woff2');
-      font-weight: bold;
-      font-style: normal;
-      font-display: swap;
-    }
-
-    /* Reset and transparent background */
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    /* Wrapper for both text lines */
-    #textWrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    /* Shared text styles */
-    #text, #text2 {
-      position: absolute;
-      left: 16.67%;
-      color: #fff;
-      text-align: center;
-      white-space: pre-wrap;
-    }
-    #text {
-      top: 51.5%;
-      font-size: 2.7vw;
-      width: 22vw;
-      margin-left: -11vw;
-      font-family: 'SegoePro-Bold', sans-serif;
-    }
-    #text2 {
-      top: 59%;
-      font-size: 1.4vw;
-      width: 22vw;
-      line-height: 1.2;
-      margin-left: -11vw;
-      font-family: 'SegoePro', sans-serif;
-    }
-
-    @keyframes slideFade {
-      from { opacity: 0; transform: translateX(10px); }
-      to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes fadeOut {
-      from { opacity: 1; }
-      to   { opacity: 0; }
-    }
-    .char, .word {
-      display: inline-block;
-      opacity: 0;
-    }
-  </style>
+<meta charset="utf-8">
+<title>SIMID Overlay</title>
+<style>
+@font-face{
+  font-family:'NotoMusic';
+  src:url('https://fonts.gstatic.com/s/notomusic/v26/pe0oMI2Gpcpiyz1o4LOa4g.ttf') format('truetype');
+}
+html,body{margin:0;padding:0;background:transparent}
+#banner{position:absolute;bottom:8%;left:5%;right:5%;padding:16px;background:rgba(0,0,0,0.5);color:#fff;font-size:2vw;border-radius:8px;text-align:center;font-family:NotoMusic,Arial,Helvetica,sans-serif}
+</style>
 </head>
 <body>
-  <div id="textWrapper">
-    <div id="text"></div>
-    <div id="text2"></div>
-  </div>
+<div id="banner">Visit beautiful coastal Maine this summer!</div>
+<script>
+(() => {
+  const banner = document.getElementById('banner');
+  let lastTime = -1;
 
-  <script>
-    (function() {
-      // CONFIGURATION - Set framerate here
-      const fps = 24; // Change this to 30 for 30fps videos, etc.
-      
-      const startFrame1 = 76;
-      const startFrame2 = 86;
-      const letterFrames = 16;
-      const wordFrames = 27;
-      const fadeStartFrame = 260;
-      const fadeFrames = 7;
+  const post = (obj) => parent.postMessage(obj, '*');
 
-      let handshakeTime = 0;
-      let handshakeVideoTime = 0;
-      let campaignDataReceived = false;
-      let receivedCampaignData = null;
+  window.addEventListener('message', (e) => {
+    const { data } = e;
+    if (!data || typeof data !== 'object') return;
+    switch (data.type) {
+      case 'playerInit':
+        post({ type: 'creativeInit', success: true });
+        break;
+      case 'initAck':
+        // player confirmed handshake
+        break;
+      case 'timeUpdate':
+        sync(data.currentTime, data.duration);
+        break;
+      case 'pause':
+        banner.style.opacity = '0.5';
+        break;
+      case 'resume':
+        banner.style.opacity = '1';
+        break;
+      case 'volumeChange':
+        break;
+    }
+  });
 
-      window.addEventListener('message', function handler(e) {
-        if (e.data === 'parentLoaded') {
-          parent.postMessage('overlayReady', '*');
-        }
-        
-        if (e.data && e.data.type === 'init') {
-          const { currentTime } = e.data;
-          handshakeTime = performance.now();
-          handshakeVideoTime = currentTime;
-
-          console.log('Overlay init - videoTime:', currentTime);
-          console.log('Using overlay framerate:', fps);
-          
-          // If we already have campaign data, proceed immediately
-          if (campaignDataReceived) {
-            setupAnimations();
-          }
-          // Otherwise wait for campaign data
-        }
-        
-        if (e.data && e.data.type === 'campaignData') {
-          console.log('Received campaign data via postMessage:', e.data);
-          receivedCampaignData = e.data;
-          campaignDataReceived = true;
-          
-          // If handshake already happened, proceed immediately
-          if (handshakeTime > 0) {
-            setupAnimations();
-          }
-          // Otherwise wait for init message
-        }
-      });
-
-      function setupAnimations() {
-        const now = performance.now();
-        const videoTime = handshakeVideoTime + (now - handshakeTime) / 1000;
-
-        console.log('Setting up animations - videoTime now:', videoTime);
-        console.log('Data received took:', now - handshakeTime, 'ms after init');
-
-        // Extract text from campaign data
-        const t1 = receivedCampaignData.text1 || "Default Text 1";
-        const t2 = receivedCampaignData.text2 || "Default Text 2";
-
-        console.log('Using text:', {t1, t2});
-
-        // populate containers
-        const c1 = document.getElementById('text');
-        const c2 = document.getElementById('text2');
-
-        // durations
-        const letterDuration = letterFrames / fps;
-        const wordDuration = wordFrames / fps;
-        const fadeStart = fadeStartFrame / fps;
-        const fadeDuration = fadeFrames / fps;
-
-        console.log('Animation timings:', {
-          startFrame1: startFrame1 / fps,
-          fadeStart: fadeStart,
-          videoTime: videoTime,
-          delay: (startFrame1 / fps) - videoTime
-        });
-
-        // animate first line per character
-        c1.textContent = '';
-        Array.from(t1).forEach((char, i) => {
-          const span = document.createElement('span');
-          span.className = 'char';
-          span.textContent = char;
-          const delay = (startFrame1 + i) / fps - videoTime;
-          span.style.animation = `slideFade ${letterDuration}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max(delay, 0)}s`;
-          c1.appendChild(span);
-        });
-
-        // animate second line per word
-        c2.textContent = '';
-        t2.split(' ').forEach((word, i, arr) => {
-          const span = document.createElement('span');
-          span.className = 'word';
-          span.textContent = word;
-          const delay = (startFrame2 + i) / fps - videoTime;
-          span.style.animation = `slideFade ${wordDuration}s ease-out forwards`;
-          span.style.animationDelay = `${Math.max(delay, 0)}s`;
-          c2.appendChild(span);
-          if (i < arr.length - 1) c2.appendChild(document.createTextNode(' '));
-        });
-
-        // fade out wrapper
-        const wrapper = document.getElementById('textWrapper');
-        const fadeDelay = fadeStart - videoTime;
-        wrapper.style.animation = `fadeOut ${fadeDuration}s ease-out forwards`;
-        wrapper.style.animationDelay = `${Math.max(fadeDelay, 0)}s`;
-      }
-    })();
-  </script>
+  /* simple example sync */
+  function sync(current, duration) {
+    if (duration && current > duration - 3 && lastTime <= duration - 3) {
+      banner.textContent = 'Thanks for watching!';
+    }
+    lastTime = current;
+  }
+})();
+</script>
 </body>
 </html>
