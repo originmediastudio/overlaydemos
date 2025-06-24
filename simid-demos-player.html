@@ -1,91 +1,888 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>SIMID Demo Player</title>
-<style>
-body{margin:0;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
-video{width:80vw;max-width:1280px;background:#000;outline:none}
-.controls{margin-top:8px;display:flex;gap:8px}
-button{padding:6px 12px;font-size:16px;border:none;border-radius:4px;cursor:pointer}
-iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;pointer-events:none}
-</style>
+  <meta charset="UTF-8" />
+  <title>1038 Origin SIMID Demo Player</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background: #000;
+      color: #fff;
+    }
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+    }
+    .logo img {
+      height: 30px;
+      width: auto;
+    }
+    .wrapper {
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: 28px;
+      text-align: center;
+    }
+    #introductionBox {
+      font-size: 14px;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      line-height: 1.4;
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .intro-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .intro-title {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .intro-toggle {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .intro-toggle:hover {
+      opacity: 1;
+    }
+    #introContent {
+      transition: all 0.3s ease;
+    }
+    #introContent.hidden {
+      display: none;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      max-width: 890px;
+      margin-left: auto;
+      margin-right: auto;
+      align-items: flex-start;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .controls-left {
+      flex: 0 0 auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .controls-right {
+      flex: 1;
+      min-width: 0;
+    }
+    #pathDisplay {
+      font-family: monospace;
+      font-size: 10px;
+      color: #999;
+      line-height: 1.3;
+      text-align: left;
+      overflow-wrap: break-word;
+    }
+    .path-table {
+      display: table;
+      width: 100%;
+    }
+    .path-row {
+      display: table-row;
+    }
+    .path-label {
+      display: table-cell;
+      padding-right: 10px;
+      white-space: nowrap;
+    }
+    .path-value {
+      display: table-cell;
+      text-align: left;
+    }
+    .path-link {
+      color: #999;
+      text-decoration: none;
+      cursor: default;
+      transition: color 0.2s;
+    }
+    .path-link:hover {
+      color: #fff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+    .modal-content {
+      background-color: #222;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 1000px;
+      max-height: 80%;
+      overflow-y: auto;
+      color: #fff;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+    .modal-close {
+      background: #666;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 5px 15px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .modal-close:hover {
+      background: #777;
+    }
+    .modal-code {
+      font-family: monospace;
+      font-size: 11px;
+      background: #111;
+      color: #fff;
+      padding: 15px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+      overflow-x: auto;
+      line-height: 1.4;
+    }
+    select, input[type=text], button {
+      font-size: 14px;
+      padding: 8px;
+      border-radius: 4px;
+    }
+    #campaignSelect {
+      border-radius: 4px;
+    }
+    #textEntry {
+      font-family: monospace;
+      font-size: 12px;
+      background: #333;
+      border: 1px solid #fff;
+      color: #fff;
+    }
+    button {
+      background: #34cc6a;
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      padding: 8px 16px;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #player {
+      position: relative;
+      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
+      aspect-ratio: 16/9;
+      background: #000;
+    }
+    #player video, #player iframe {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    #player iframe {
+      border: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #toggleAudioButton {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+      margin: 15px auto 0;
+      display: block;
+    }
+    #toggleAudioButton:hover {
+      opacity: 1;
+    }
+    #toggleAudioButton.hidden {
+      display: none;
+    }
+    .code-section {
+      max-width: 650px;
+      margin: 20px auto 0;
+      text-align: left;
+    }
+    .code-header {
+      font-size: 14px;
+      font-weight: normal;
+      margin-bottom: 10px;
+    }
+    #codeDisplay {
+      font-family: monospace;
+      font-size: 11px;
+      background: #333;
+      color: #fff;
+      border-radius: 4px;
+      padding: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.3;
+      text-align: left;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<video id="vid" autoplay muted playsinline>
-  <source src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" type="application/x-mpegURL">
-</video>
+  <a href="https://originmedia.tv" class="logo" target="_blank">
+    <img src="logo-origin.png" alt="Origin Media">
+  </a>
+  <div class="wrapper">
+    <h1>ORIGIN SIMID DEMO PLAYER</h1>
+    <div id="introductionBox">
+      <div class="intro-header">
+        <div class="intro-title">Introduction:</div>
+        <button class="intro-toggle" id="introToggle">Hide</button>
+      </div>
+      <div id="introContent">
+Loading...
+      </div>
+    </div>
+    <div class="controls">
+      <div class="controls-left">
+        <select id="campaignSelect">
+          <option value="">Loading campaigns...</option>
+        </select>
+        
+        <!-- Dynamic controls that appear based on campaign selection -->
+        <select id="dynamicDropdown" class="hidden"></select>
+        <input type="text" id="textEntry" class="hidden" />
+        <button id="enterButton" class="hidden">Enter</button>
+        <button id="randomButton" class="hidden">Random</button>
+        <button id="loadButton" class="hidden">Load mp4 & overlay</button>
+      </div>
+      <div class="controls-right">
+        <div id="pathDisplay" class="hidden"></div>
+      </div>
+    </div>
+  </div>
+  <div id="player">
+    <video id="adVideo" autoplay muted playsinline preload="auto">
+      <source id="videoSource" src="" type="video/mp4">
+    </video>
+    <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
+  </div>
+  <button id="toggleAudioButton" class="hidden">Toggle Audio</button>
+  
+  <!-- Modal for overlay source code -->
+  <div id="overlayModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Overlay HTML Source Code</h3>
+        <button class="modal-close" onclick="closeOverlayModal()">Close</button>
+      </div>
+      <div class="modal-code" id="overlaySourceCode"></div>
+    </div>
+  </div>
+  
+  <!-- Modal for dataset source -->
+  <div id="datasetModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Bid Response Dataset</h3>
+        <button class="modal-close" onclick="closeDatasetModal()">Close</button>
+      </div>
+      <div class="modal-code" id="datasetSourceCode"></div>
+    </div>
+  </div>
+  
+  <!-- Modal for video player -->
+  <div id="videoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Base MP4 Video</h3>
+        <button class="modal-close" onclick="closeVideoModal()">Close</button>
+      </div>
+      <video id="modalVideo" controls autoplay style="width: 100%; max-height: 60vh; background: #000;">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+  
+  <div class="code-section">
+    <div class="code-header hidden" id="codeHeader">Data provided to the overlay HTML</div>
+    <div id="codeDisplay" class="hidden"></div>
+  </div>
 
-<div class="controls">
-  <button id="toggleAudio">Toggle Audio</button>
-</div>
+  <script>
+    const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
+    let headers = [], dataRows = [], idxCampaign = -1;
+    let currentCampaignData = null;
+    let currentJsonData = null;
 
-<iframe id="overlay" title="SIMID Overlay" sandbox="allow-scripts allow-popups"></iframe>
+    const campaignSelect = document.getElementById('campaignSelect');
+    const specialInfoDiv = document.getElementById('specialInfo');
+    const introToggle = document.getElementById('introToggle');
+    const introContent = document.getElementById('introContent');
+    const videoEl = document.getElementById('adVideo');
+    const videoSource = document.getElementById('videoSource');
+    const iframeEl = document.getElementById('overlayFrame');
+    
+    // Dynamic controls
+    const dynamicDropdown = document.getElementById('dynamicDropdown');
+    const textEntry = document.getElementById('textEntry');
+    const enterButton = document.getElementById('enterButton');
+    const randomButton = document.getElementById('randomButton');
+    const loadButton = document.getElementById('loadButton');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const codeHeader = document.getElementById('codeHeader');
+    const pathDisplay = document.getElementById('pathDisplay');
+    const overlayModal = document.getElementById('overlayModal');
+    const overlaySourceCode = document.getElementById('overlaySourceCode');
+    const datasetModal = document.getElementById('datasetModal');
+    const datasetSourceCode = document.getElementById('datasetSourceCode');
+    const videoModal = document.getElementById('videoModal');
+    const modalVideo = document.getElementById('modalVideo');
+    const toggleAudioButton = document.getElementById('toggleAudioButton');
 
-<script>
-(() => {
-  const video = document.getElementById('vid');
-  const iframe = document.getElementById('overlay');
-  iframe.src = 'overlay-maine.html';
-
-  const send = (obj) => iframe.contentWindow && iframe.contentWindow.postMessage(obj, '*');
-
-  /* ---------- SIMID handshake ---------- */
-  let handshakeDone = false;
-  function sendPlayerInit() {
-    send({
-      type: 'playerInit',
-      version: 'SIMID-1.1',
-      environmentData: { deviceType: 'CTV' },
-      creativeData: { adParameters: '{}' },
-      verificationParameters: {}
+    // Set up pause debugging
+    videoEl.addEventListener('pause', function(e) {
+      console.log('=== VIDEO PAUSED ===');
+      console.log('Time:', videoEl.currentTime);
+      console.log('Duration:', videoEl.duration);
+      console.log('Ended:', videoEl.ended);
+      console.log('Error:', videoEl.error);
+      console.log('Ready state:', videoEl.readyState);
+      console.log('Network state:', videoEl.networkState);
+      console.trace('Pause origin');
     });
-  }
-  iframe.addEventListener('load', sendPlayerInit);
 
-  window.addEventListener('message', (e) => {
-    const { data } = e;
-    if (!data || typeof data !== 'object') return;
-    switch (data.type) {
-      case 'creativeInit':
-        if (data.success) {
-          handshakeDone = true;
-          send({ type: 'initAck', success: true });
-        }
-        break;
-      case 'openUrl':
-        window.open(data.url, '_blank');
-        break;
-    }
-  });
-
-  /* ---------- Playback updates ---------- */
-  function startUpdates() {
-    const loop = () => {
-      if (handshakeDone) {
-        send({ type: 'timeUpdate', currentTime: video.currentTime, duration: video.duration || 0 });
-      }
-      if (!video.paused && video.requestVideoFrameCallback) {
-        video.requestVideoFrameCallback(loop);
+    // Set up overlay messaging
+    let overlayLoadHandler = () => {
+      if (iframeEl.contentWindow) {
+        iframeEl.contentWindow.postMessage('parentLoaded', '*');
       }
     };
-    if (video.requestVideoFrameCallback) {
-      video.requestVideoFrameCallback(loop);
-    } else {
-      setInterval(() => handshakeDone && send({ type: 'timeUpdate', currentTime: video.currentTime, duration: video.duration || 0 }), 250);
+    
+    let messageHandler = (e) => {
+      if (e.source !== iframeEl.contentWindow) return;
+      if (e.data === 'overlayReady') {
+        iframeEl.contentWindow.postMessage({
+          type: 'init',
+          currentTime: videoEl.currentTime,
+          duration: videoEl.duration
+        }, '*');
+      }
+    };
+
+    iframeEl.addEventListener('load', overlayLoadHandler);
+    window.addEventListener('message', messageHandler);
+    
+    // Simple 'm' key toggle for current video audio
+    function toggleAudio() {
+      videoEl.muted = !videoEl.muted;
+      console.log('Video muted:', videoEl.muted);
     }
-  }
+    
+    document.addEventListener('keydown', function(e) {
+      if (e.key.toLowerCase() === 'm') {
+        toggleAudio();
+      }
+    });
+    
+    // Toggle audio button
+    toggleAudioButton.addEventListener('click', toggleAudio);
 
-  video.addEventListener('play', () => { send({ type: 'resume' }); startUpdates(); });
-  video.addEventListener('pause', () => send({ type: 'pause' }));
-  video.addEventListener('volumechange', () => send({ type: 'volumeChange', volume: video.muted ? 0 : video.volume }));
+    // Introduction toggle functionality
+    introToggle.addEventListener('click', function() {
+      if (introContent.classList.contains('hidden')) {
+        introContent.classList.remove('hidden');
+        introToggle.textContent = 'Hide';
+      } else {
+        introContent.classList.add('hidden');
+        introToggle.textContent = 'Show';
+      }
+    });
 
-  /* ---------- UI ---------- */
-  document.getElementById('toggleAudio').addEventListener('click', () => {
-    video.muted = !video.muted;
-  });
-})();
-</script>
+    // Modal functions
+    function closeOverlayModal() {
+      overlayModal.style.display = 'none';
+    }
+    
+    function closeDatasetModal() {
+      datasetModal.style.display = 'none';
+    }
+    
+    function closeVideoModal() {
+      modalVideo.pause();
+      modalVideo.src = '';
+      videoModal.style.display = 'none';
+    }
+    
+    function showOverlayModal(overlayUrl) {
+      fetch(overlayUrl)
+        .then(response => response.text())
+        .then(html => {
+          overlaySourceCode.textContent = html;
+          overlayModal.style.display = 'block';
+        })
+        .catch(error => {
+          overlaySourceCode.textContent = 'Error loading overlay source: ' + error.message;
+          overlayModal.style.display = 'block';
+        });
+    }
+    
+    function showDatasetModal(datasetUrl) {
+      fetch(datasetUrl)
+        .then(response => response.json())
+        .then(data => {
+          datasetSourceCode.textContent = JSON.stringify(data, null, 2);
+          datasetModal.style.display = 'block';
+        })
+        .catch(error => {
+          datasetSourceCode.textContent = 'Error loading dataset: ' + error.message;
+          datasetModal.style.display = 'block';
+        });
+    }
+    
+    function showVideoModal(videoUrl) {
+      modalVideo.src = videoUrl;
+      videoModal.style.display = 'block';
+    }
+    
+    function playVideoOnly(videoUrl) {
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      videoSource.src = videoUrl;
+      iframeEl.src = ''; // Clear overlay
+      videoEl.load();
+      videoEl.play();
+    }
+    
+    // Close modals when clicking outside
+    overlayModal.addEventListener('click', function(e) {
+      if (e.target === overlayModal) {
+        closeOverlayModal();
+      }
+    });
+    
+    datasetModal.addEventListener('click', function(e) {
+      if (e.target === datasetModal) {
+        closeDatasetModal();
+      }
+    });
+    
+    videoModal.addEventListener('click', function(e) {
+      if (e.target === videoModal) {
+        closeVideoModal();
+      }
+    });
+    
+    // Make functions globally accessible
+    window.closeOverlayModal = closeOverlayModal;
+    window.closeDatasetModal = closeDatasetModal;
+    window.closeVideoModal = closeVideoModal;
+    window.showOverlayModal = showOverlayModal;
+    window.showDatasetModal = showDatasetModal;
+    window.showVideoModal = showVideoModal;
+    window.playVideoOnly = playVideoOnly;
+
+    // Fetch TSV data
+    fetch(tsvUrl)
+      .then(r => r.text())
+      .then(text => {
+        const all = text.trim().split('\n').map(line => line.split('\t'));
+        headers = all[0].map(h => h.trim());
+        dataRows = all.slice(1);
+        console.log('TSV Headers:', headers);
+        console.log('Number of data rows:', dataRows.length);
+        
+        // Load introduction text from row 2 (index 0 since dataRows excludes header)
+        const idxIntroduction = headers.findIndex(h => h.toLowerCase() === 'introduction');
+        if (idxIntroduction >= 0 && dataRows.length > 0) {
+          const introductionText = dataRows[0][idxIntroduction] || 'No introduction text available.';
+          introContent.textContent = introductionText;
+        } else {
+          introContent.textContent = 'No introduction text found in data.';
+        }
+        
+        idxCampaign = headers.findIndex(h => h.toLowerCase() === 'campaign');
+        if (idxCampaign < 0) {
+          console.warn('Campaign header not found, defaulting to first column.');
+          idxCampaign = 0;
+        }
+        populateCampaigns();
+      });
+
+    function populateCampaigns() {
+      const uniq = [...new Set(dataRows.map(r => r[idxCampaign]).filter(Boolean))];
+      campaignSelect.innerHTML = '<option value="">Select campaign</option>' +
+        uniq.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function hideAllDynamicControls() {
+      dynamicDropdown.classList.add('hidden');
+      textEntry.classList.add('hidden');
+      enterButton.classList.add('hidden');
+      randomButton.classList.add('hidden');
+      loadButton.classList.add('hidden');
+    }
+
+    function displayPostMessageData(data) {
+      // Show the actual postMessage structure
+      const postMessageData = {
+        type: 'campaignData',
+        ...data
+      };
+      
+      // Remove the outer brackets and format nicely
+      const jsonString = JSON.stringify(postMessageData, null, 2);
+      const withoutBrackets = jsonString.slice(1, -1).trim();
+      
+      codeDisplay.textContent = withoutBrackets;
+      codeDisplay.classList.remove('hidden');
+      codeHeader.classList.remove('hidden');
+    }
+
+    function resetCampaignSelection() {
+      campaignSelect.value = '';
+      hideAllDynamicControls();
+      codeDisplay.classList.add('hidden');
+      codeHeader.classList.add('hidden');
+      pathDisplay.classList.add('hidden');
+    }
+
+    campaignSelect.addEventListener('change', function() {
+      const selected = this.value;
+      hideAllDynamicControls();
+      
+      if (!selected) {
+        resetCampaignSelection();
+        return;
+      }
+      
+      console.log('Selected campaign:', selected);
+      const row = dataRows.find(r => r[idxCampaign] === selected);
+      console.log('Found row:', row);
+      console.log('Headers:', headers);
+      
+      if (!row) {
+        console.error('No row found for campaign:', selected);
+        return;
+      }
+      
+      currentCampaignData = row;
+      
+      // Show special info
+      const idxSpecial = headers.findIndex(h => h.toLowerCase() === 'special info');
+      console.log('Special info index:', idxSpecial);
+      
+      if (specialInfoDiv) {
+        const specialText = row[idxSpecial] || '';
+        console.log('Special text:', specialText);
+        
+        // Use default text if no special info provided
+        if (specialText.trim() === '') {
+          specialInfoDiv.textContent = 'This site simulates a CTV player with SIMID protocol enabled. It demonstrates how a single base mp4 can be overlaid with a synchronized HTML overlay, with elements customized by data. Select a demonstration campaign to reveal options that would typically be determined by the ad server, such as device geo. This site will then source JSON data and pass it to the overlay HTML, just like an ad server preparing a full VAST response for a won bid.';
+        } else {
+          specialInfoDiv.textContent = specialText;
+        }
+      } else {
+        console.error('specialInfoDiv element not found!');
+      }
+      
+      // Get data and input types
+      const idxData = headers.findIndex(h => h.toLowerCase() === 'data');
+      const idxInput = headers.findIndex(h => h.toLowerCase() === 'input');
+      const idxChoice = headers.findIndex(h => h.toLowerCase() === 'choice');
+      
+      console.log('Column indices:', {idxData, idxInput, idxChoice});
+      
+      const dataType = row[idxData] || 'none';
+      const inputType = row[idxInput] || 'dropDownButton';
+      const choice = row[idxChoice] || 'Option';
+      
+      console.log('Campaign data:', {dataType, inputType, choice});
+      
+      if (dataType === 'json') {
+        setupJsonDataFlow(inputType, choice, row);
+      } else if (dataType === 'options') {
+        setupOptionsDataFlow(inputType, choice, row);
+      } else {
+        // data = none
+        loadButton.classList.remove('hidden');
+        loadButton.textContent = 'Load mp4 & overlay';
+      }
+    });
+
+    async function setupJsonDataFlow(inputType, choice, row) {
+      const idxDataPath = headers.findIndex(h => h.toLowerCase() === 'datapath');
+      
+      if (idxDataPath < 0) {
+        console.error('dataPath column not found in TSV');
+        alert('Error: dataPath column not found in configuration');
+        resetCampaignSelection();
+        return;
+      }
+      
+      const jsonUrl = row[idxDataPath];
+      
+      if (!jsonUrl) {
+        console.error('No dataPath value found for this campaign');
+        alert('Error: No data path specified for this campaign');
+        resetCampaignSelection();
+        return;
+      }
+      
+      try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error(`Failed to fetch ${jsonUrl}`);
+        
+        currentJsonData = await response.json();
+        console.log('Loaded JSON data:', currentJsonData);
+        
+        if (inputType === 'dropDownButton') {
+          setupDropdownInput(choice);
+        } else if (inputType === 'textEntry') {
+          setupTextInput(choice);
+        } else if (inputType === 'randomButton') {
+          setupRandomInput(choice);
+        }
+        
+      } catch (error) {
+        console.error('Error loading JSON data:', error);
+        alert(`Error loading campaign data: ${error.message}`);
+        resetCampaignSelection();
+      }
+    }
+
+    function setupOptionsDataFlow(inputType, choice, row) {
+      // Build data from Option columns
+      const optionData = {};
+      headers.forEach((header, i) => {
+        if (/^Option \d+/i.test(header) && row[i]) {
+          const value = row[i].split(' ')[0]; // Only up to first space
+          optionData[header] = value;
+        }
+      });
+      
+      currentJsonData = {campaigns: [optionData]};
+      console.log('Built options data:', currentJsonData);
+      
+      if (inputType === 'dropDownButton') {
+        setupOptionsDropdown(choice, row);
+      } else if (inputType === 'randomButton') {
+        setupRandomInput(choice);
+      }
+      // textEntry doesn't make sense with options data
+    }
+
+    function setupDropdownInput(choice) {
+      dynamicDropdown.classList.remove('hidden');
+      dynamicDropdown.innerHTML = `<option value="">Select ${choice}</option>`;
+      
+      currentJsonData.campaigns.forEach((campaign, index) => {
+        const label = `${campaign.demoLabel} - ${campaign.labelDescription}`;
+        dynamicDropdown.innerHTML += `<option value="${index}">${label}</option>`;
+      });
+      
+      dynamicDropdown.addEventListener('change', function() {
+        if (this.value !== '') {
+          const selectedCampaign = currentJsonData.campaigns[parseInt(this.value)];
+          displayPostMessageData(selectedCampaign);
+          loadExperience(selectedCampaign);
+        }
+      });
+    }
+
+    function setupOptionsDropdown(choice, row) {
+      dynamicDropdown.classList.remove('hidden');
+      dynamicDropdown.innerHTML = `<option value="">Select ${choice}</option>`;
+      
+      headers.forEach((header, i) => {
+        if (/^Option \d+/i.test(header) && row[i]) {
+          const display = row[i].replace(/ *\([^)]*\)/, '');
+          dynamicDropdown.innerHTML += `<option value="${header}">${display}</option>`;
+        }
+      });
+      
+      dynamicDropdown.addEventListener('change', function() {
+        if (this.value !== '') {
+          const headerName = this.value;
+          const value = currentCampaignData[headers.findIndex(h => h === headerName)].split(' ')[0];
+          const campaignData = {[choice]: value};
+          displayPostMessageData(campaignData);
+          loadExperience(campaignData);
+        }
+      });
+    }
+
+    function setupTextInput(choice) {
+      textEntry.classList.remove('hidden');
+      enterButton.classList.remove('hidden');
+      textEntry.placeholder = `Enter a ${choice}`;
+      
+      function handleTextEntry() {
+        const enteredValue = textEntry.value.trim();
+        const matchingCampaign = currentJsonData.campaigns.find(c => 
+          c.demoLabel === enteredValue
+        );
+        
+        if (matchingCampaign) {
+          displayPostMessageData(matchingCampaign);
+          loadExperience(matchingCampaign);
+        } else {
+          alert(`No matching ${choice} found for: ${enteredValue}`);
+        }
+      }
+      
+      enterButton.addEventListener('click', handleTextEntry);
+      textEntry.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          handleTextEntry();
+        }
+      });
+    }
+
+    function setupRandomInput(choice) {
+      randomButton.classList.remove('hidden');
+      randomButton.textContent = `Random ${choice}`;
+      
+      randomButton.addEventListener('click', function() {
+        const randomIndex = Math.floor(Math.random() * currentJsonData.campaigns.length);
+        const randomCampaign = currentJsonData.campaigns[randomIndex];
+        displayPostMessageData(randomCampaign);
+        loadExperience(randomCampaign);
+      });
+    }
+
+    function loadExperience(campaignData = null) {
+      const idxId = headers.findIndex(h => h.toLowerCase() === 'id');
+      const idxMp4 = headers.findIndex(h => h.toLowerCase() === 'mp4');
+      const id = currentCampaignData[idxId];
+      
+      if (!id) {
+        console.error('No ID found for this campaign');
+        alert('Error: No ID found for this campaign');
+        return;
+      }
+      
+      // Stop any existing video
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      
+      // Determine video URL - prioritize JSON data, then TSV, then fallback to constructed URL
+      let videoUrl;
+      if (campaignData && campaignData.mp4) {
+        videoUrl = campaignData.mp4;
+        console.log('Using mp4 path from JSON data:', videoUrl);
+      } else if (idxMp4 >= 0 && currentCampaignData[idxMp4]) {
+        videoUrl = currentCampaignData[idxMp4];
+        console.log('Using mp4 path from TSV:', videoUrl);
+      } else {
+        videoUrl = `https://static.originmedia.tv/website/internal/${id}.mp4`;
+        console.log('Using constructed mp4 path:', videoUrl);
+      }
+      
+      const cacheBuster = `_cb=${Date.now()}`;
+      const overlayUrl = `overlay-${id}.html?${cacheBuster}`;
+      
+      console.log('Loading video:', videoUrl);
+      console.log('Loading overlay:', overlayUrl);
+      console.log('Campaign data to pass:', campaignData);
+      
+      // Load video
+      videoSource.src = videoUrl;
+      videoEl.load();
+      videoEl.play();
+      
+      // Load overlay
+      iframeEl.src = overlayUrl;
+      
+      // Show toggle audio button after first video loads
+      toggleAudioButton.classList.remove('hidden');
+      
+      // Show path display in controls-right area with clickable links
+      const displayVideoUrl = videoUrl;
+      const displayOverlayUrl = overlayUrl.split('?')[0]; // Remove cachebuster for display
+      const fullOverlayUrl = overlayUrl; // Keep full URL for fetching
+      const datasetUrl = currentCampaignData[headers.findIndex(h => h.toLowerCase() === 'datapath')];
+      
+      pathDisplay.innerHTML = `
+        <div class="path-table">
+          <div class="path-row">
+            <div class="path-label">Bid response dataset:</div>
+            <div class="path-value"><span class="path-link" onclick="showDatasetModal('${datasetUrl}')">${datasetUrl}</span></div>
+          </div>
+          <div class="path-row">
+            <div class="path-label">Base mp4 path:</div>
+            <div class="path-value"><span class="path-link" onclick="showVideoModal('${videoUrl}')">${displayVideoUrl}</span></div>
+          </div>
+          <div class="path-row">
+            <div class="path-label">Overlay path:</div>
+            <div class="path-value"><span class="path-link" onclick="showOverlayModal('${fullOverlayUrl}')">${displayOverlayUrl}</span></div>
+          </div>
+        </div>
+      `;
+      pathDisplay.classList.remove('hidden');
+      
+      // Send campaign data via postMessage when overlay is ready
+      if (campaignData) {
+        const sendData = () => {
+          if (iframeEl.contentWindow) {
+            iframeEl.contentWindow.postMessage({
+              type: 'campaignData',
+              ...campaignData
+            }, '*');
+            console.log('Sent campaign data via postMessage:', campaignData);
+          }
+        };
+        
+        // Send data after a short delay to ensure overlay is ready
+        setTimeout(sendData, 500);
+      }
+    }
+
+    // Handle data=none case
+    loadButton.addEventListener('click', () => loadExperience());
+  </script>
 </body>
 </html>
