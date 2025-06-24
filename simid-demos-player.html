@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>533 Origin SIMID Demo Player</title>
+  <title>540 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -223,6 +223,11 @@ Loading...
     <iframe id="overlayFrame" sandbox="allow-scripts"></iframe>
   </div>
   <button id="toggleAudioButton" class="hidden">Toggle Audio</button>
+  
+  <div class="code-section">
+    <div class="code-header">Data provided to the overlay HTML</div>
+    <div id="codeDisplay" class="hidden"></div>
+  </div>
 
   <script>
     const tsvUrl = 'https://script.google.com/macros/s/AKfycbzRMk7C3fLoR00cqNtBaHOE6MlveA5Z79Gq32FwrdkNBguZmMzCUWM9DRPI3JgFd4yd/exec';
@@ -345,7 +350,6 @@ Loading...
       enterButton.classList.add('hidden');
       randomButton.classList.add('hidden');
       loadButton.classList.add('hidden');
-      codeDisplay.classList.add('hidden');
     }
 
     function displayPostMessageData(data) {
@@ -366,6 +370,7 @@ Loading...
     function resetCampaignSelection() {
       campaignSelect.value = '';
       hideAllDynamicControls();
+      codeDisplay.classList.add('hidden');
     }
 
     campaignSelect.addEventListener('change', function() {
