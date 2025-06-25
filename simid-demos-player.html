@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>03 Origin SIMID Demo Player</title>
+  <title>38 Origin SIMID Demo Player</title>
   <style>
     body, html {
       margin: 0;
@@ -589,14 +589,47 @@ Loading...
       codeDisplay.classList.add('hidden');
       codeHeader.classList.add('hidden');
       pathDisplay.classList.add('hidden');
+      
+      // Stop and reset video player
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      videoSource.src = '';
+      
+      // Clear iframe overlay
+      iframeEl.src = '';
+      
+      // Hide toggle audio button
+      toggleAudioButton.classList.add('hidden');
+      
+      // Reset any current data
+      currentCampaignData = null;
+      currentJsonData = null;
     }
 
     campaignSelect.addEventListener('change', function() {
       const selected = this.value;
+      
+      // Always reset everything first when campaign changes
       hideAllDynamicControls();
+      codeDisplay.classList.add('hidden');
+      codeHeader.classList.add('hidden');
+      pathDisplay.classList.add('hidden');
+      
+      // Stop and reset video player
+      videoEl.pause();
+      videoEl.currentTime = 0;
+      videoSource.src = '';
+      
+      // Clear iframe overlay
+      iframeEl.src = '';
+      
+      // Hide toggle audio button
+      toggleAudioButton.classList.add('hidden');
       
       if (!selected) {
-        resetCampaignSelection();
+        // Reset data variables when no campaign selected
+        currentCampaignData = null;
+        currentJsonData = null;
         return;
       }
       
