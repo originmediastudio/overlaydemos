@@ -29,16 +29,15 @@
       top: 65.95%;        /* center Y point */
       transform: translate(-50%, -50%);
       overflow: hidden;
-      border-radius: 14%; /* corner curve */
+      border-radius: 15%; /* corner curve */
       opacity: 0;
     }
-    img.masked-img { display:block; width:120%; height:auto; transform-origin:center center; }
+    img.masked-img { display:block; width:110%; height:auto; }
 
     /* Animations */
     @keyframes slideFade { from {opacity:0; transform:translateX(10px);} to {opacity:1; transform:translateX(0);} }
     @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
     @keyframes fadeOut { from {opacity:1;} to {opacity:0;} }
-    @keyframes scaleUp { from {transform:scale(0.9);} to {transform:scale(1);} }
     .char, .word { display:inline-block; opacity:0; }
   </style>
 </head>
@@ -53,7 +52,7 @@
       const startFrame1 = 350, startFrame2 = 365;
       const letterFrames = 18, wordFrames = 28;
       const imageFrames = [370,450,540,630];
-      const durationFrames = 90, fadeFrames = 6, scaleFrames = 20;
+      const durationFrames = 90, fadeFrames = 6;
       const handshake = { time:0, videoTime:0 };
       let campaignData = null;
 
@@ -121,10 +120,8 @@
           const startT = startFrame / fps;
           const fadeInDelay = Math.max(startT - videoTime, 0);
           const fadeOutDelay = Math.max((startFrame + durationFrames - fadeFrames)/fps - videoTime, 0);
-          const scaleDelay = fadeInDelay;
 
           mask.style.animation = `fadeIn ${fadeFrames/fps}s ease-out ${fadeInDelay}s forwards, fadeOut ${fadeFrames/fps}s ease-out ${fadeOutDelay}s forwards`;
-          img.style.animation = `scaleUp ${scaleFrames/fps}s ease-out ${scaleDelay}s forwards`;
 
           mask.appendChild(img);
           wrapper.appendChild(mask);
