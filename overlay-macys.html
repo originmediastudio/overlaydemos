@@ -7,15 +7,34 @@
   <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-TTRamillas-Light.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-MacysSans-Bold.woff2" as="font" type="font/woff2" crossorigin>
   <style>
+    /* Fonts */
     @font-face { font-family: 'TT Ramillas'; src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-TTRamillas-Light.woff2') format('woff2'); font-weight:300; font-style:normal; font-display:swap; }
     @font-face { font-family: 'Macys Sans'; src: url('https://raw.githubusercontent.com/originmediastudio/overlaydemos/main/fonts/subset-MacysSans-Bold.woff2') format('woff2'); font-weight:bold; font-style:normal; font-display:swap; }
+
+    /* Full-screen reset */
     html, body { margin:0; padding:0; background:transparent; width:100%; height:100%; overflow:hidden; }
     #textWrapper { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+
+    /* Text styling */
     #text1, #text2 { position:absolute; left:41.5%; color:#fff; text-align:center; }
     #text1 { bottom:75%; font-size:5.5vw; white-space:nowrap; font-family:'TT Ramillas',serif; letter-spacing:-0.05em; transform-origin:left bottom; margin-left:-0.3vw; }
     #text2 { bottom:69%; font-size:2.3vw; white-space:pre-wrap; line-height:1.2; font-family:'Macys Sans',sans-serif; text-transform:uppercase; }
-    .image-mask { position:absolute; overflow:hidden; opacity:0; }
+
+    /* Image mask using fixed percent values */
+    .image-mask {
+      position: absolute;
+      width: 21.9%;       /* mask width of full viewport */
+      height: 54.4%;      /* mask height of full viewport */
+      left: 53.3%;        /* center X point */
+      top: 65.95%;        /* center Y point */
+      transform: translate(-50%, -50%);
+      overflow: hidden;
+      border-radius: 15%; /* corner curve */
+      opacity: 0;
+    }
     img.masked-img { display:block; width:100%; height:auto; transform-origin:center center; }
+
+    /* Animations */
     @keyframes slideFade { from {opacity:0; transform:translateX(10px);} to {opacity:1; transform:translateX(0);} }
     @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
     @keyframes fadeOut { from {opacity:1;} to {opacity:0;} }
@@ -68,10 +87,8 @@
           span.style.animationDelay = `${Math.max((startFrame1+i)/fps - videoTime,0)}s`;
           c1.appendChild(span);
         });
-        // auto-scale if too wide
-        const maxW = wrapper.clientWidth*0.55;
-        if (c1.offsetWidth > maxW) c1.style.transform = `scale(${maxW/c1.offsetWidth})`;
-        else c1.style.transform = 'scale(1)';
+        const maxW = wrapper.clientWidth * 0.55;
+        c1.style.transform = c1.offsetWidth > maxW ? `scale(${maxW/c1.offsetWidth})` : 'scale(1)';
 
         // TEXT LINE 2
         const t2 = campaignData.text2 || "";
@@ -88,29 +105,24 @@
         });
 
         // IMAGES
-        const maskW = (425/1920)*100, maskH = (590/1080)*100;
-        imageFrames.forEach((startFrame,i) => {
-          const key = `image0${i+1}`;
+        imageFrames.forEach(startFrame => {
+          const idx = imageFrames.indexOf(startFrame) + 1;
+          const key = `image0${idx}`;
           const file = campaignData[key];
           if (!file) return;
           const mask = document.createElement('div');
           mask.className = 'image-mask';
-          mask.style.width = `${maskW}vw`;
-          mask.style.height = `${maskH}vh`;
-          const halfW=maskW/2, halfH=maskH/2;
-          // shifted left 1vw and down 3vh
-          mask.style.left = `calc(54% - ${halfW}vw - 1vw)`;
-          mask.style.bottom = `calc(37% - ${halfH}vh - 3vh)`;
-          mask.style.borderRadius = `${(70/1080)*100}vh`;
 
           const img = document.createElement('img');
           img.className = 'masked-img';
           img.src = `images/${file}`;
-          // Animations
-          const startT = startFrame/fps;
-          const fadeInDelay = Math.max(startT - videoTime,0);
-          const fadeOutDelay = Math.max((startFrame+durationFrames-fadeFrames)/fps - videoTime,0);
+
+          // compute delays
+          const startT = startFrame / fps;
+          const fadeInDelay = Math.max(startT - videoTime, 0);
+          const fadeOutDelay = Math.max((startFrame + durationFrames - fadeFrames)/fps - videoTime, 0);
           const scaleDelay = fadeInDelay;
+
           mask.style.animation = `fadeIn ${fadeFrames/fps}s ease-out ${fadeInDelay}s forwards, fadeOut ${fadeFrames/fps}s ease-out ${fadeOutDelay}s forwards`;
           img.style.animation = `scaleUp ${scaleFrames/fps}s ease-out ${scaleDelay}s forwards`;
 
@@ -119,8 +131,8 @@
         });
 
         // WRAPPER FADE OUT
-        const endFade = (710/fps) - videoTime;
-        wrapper.style.animation = `fadeOut ${8/fps}s ease-out ${Math.max(endFade,0)}s forwards`;
+        const endFade = (710 / fps) - videoTime;
+        wrapper.style.animation = `fadeOut ${8/fps}s ease-out ${Math.max(endFade, 0)}s forwards`;
       }
     })();
   </script>
